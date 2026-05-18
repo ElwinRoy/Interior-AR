@@ -57,52 +57,77 @@
 
     @media(max-width:1000px) {
       #app {
-        grid-template-columns: 240px 1fr 260px
+        grid-template-columns: 220px 1fr 240px
       }
     }
 
-    @media(max-width:768px) {
+    @media(max-width:900px) {
       #app {
-        grid-template-columns: 1fr;
-        grid-template-rows: 48px 1fr auto auto;
+        grid-template-columns: 1fr !important;
+        grid-template-rows: 44px 1fr 68px !important;
         height: 100vh;
         height: 100dvh;
       }
 
       #header {
-        padding: 0 12px;
+        padding: 0 10px !important;
+        grid-column: 1 / -1;
+        height: 44px !important;
+        min-height: 44px;
       }
 
-      #left-panel,
+      #left-panel {
+        display: none !important;
+        visibility: hidden !important;
+      }
+
       #right-panel {
-        display: none
+        display: none !important;
+        visibility: hidden !important;
       }
 
       #mobile-drawer {
-        display: flex
+        display: flex !important;
       }
 
       #bottom-bar {
-        display: none
+        display: none !important;
       }
 
       #mobile-bottom {
-        display: flex
+        display: flex !important;
+        grid-column: 1 / -1;
       }
 
-      .logo { font-size: 15px }
-      .logo-icon { width: 24px; height: 24px; font-size: 12px }
-      .hbtn.pri { padding: 5px 10px; font-size: 10px }
+      #viewport {
+        grid-column: 1 / -1 !important;
+        grid-row: 2 / 3 !important;
+        width: 100% !important;
+        min-height: 0;
+        cursor: pointer;
+      }
 
-      #viewport { cursor: pointer }
+      .logo { font-size: 14px }
+      .logo-icon { width: 22px; height: 22px; font-size: 11px; border-radius: 6px }
+      .logo-sub { display: none }
+      .hbtn:not(.pri) { display: none !important }
+      .hbtn.pri { padding: 5px 10px; font-size: 10px; border-radius: 6px }
+      .hstatus { font-size: 9px; gap: 8px }
+      .hstatus-extra { display: none !important }
 
-      .hud { font-size: 8px }
-      .corner { width: 14px; height: 14px }
+      .hud { font-size: 8px; opacity: .6 }
+      .hud-tl { top: 8px; left: 8px }
+      .hud-tr { top: 8px; right: 8px }
+      .hud-bl { bottom: 8px; left: 8px }
+      .hud-br { bottom: 8px; right: 8px }
+      .corner { width: 12px; height: 12px }
+      #xhair { width: 20px; height: 20px }
 
-      #scan .sring { width: 140px; height: 140px }
+      #scan .sring { width: 120px; height: 120px }
       #scan .stxt { font-size: 11px; letter-spacing: 2px }
       #scan .ssub { font-size: 10px }
       #scambtn { padding: 10px 24px; font-size: 13px }
+      #scan .camhint { font-size: 9px }
     }
 
     /* ── SCROLLBARS ── */
@@ -1935,6 +1960,12 @@
     let drawerOpen = false;
     let lastFT = 0, fpsCnt = 0;
 
+    // ─── DEVICE ORIENTATION FOR AR ─────────────────────────────────────────────
+    let deviceOrientationEnabled = false;
+    let orientAlpha = 0, orientBeta = 0, orientGamma = 0;
+    let initialAlpha = null;
+    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
     // ─── REAL 3D FURNITURE MODELS ──────────────────────────────────────────────
 
     function makeSofa(def, color, opacity = 1) {
@@ -2130,8 +2161,10 @@
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       scene = new THREE.Scene();
       const w = vp.clientWidth, h = vp.clientHeight;
-      cam3 = new THREE.PerspectiveCamera(58, w / h, .1, 100);
-      cam3.position.set(0, 3.5, 5.5); cam3.lookAt(0, 0, 0);
+      // Wider FOV for mobile AR, eye-height camera
+      cam3 = new THREE.PerspectiveCamera(isMobile ? 65 : 58, w / h, .1, 100);
+      cam3.position.set(0, 1.6, 3.5);
+      cam3.lookAt(0, 0, 0);
       renderer.setSize(w, h);
       const amb = new THREE.AmbientLight(0xffffff, .7); scene.add(amb);
       const dir = new THREE.DirectionalLight(0xffffff, .9);
@@ -2152,11 +2185,65 @@
       window.addEventListener('resize', onResize);
     }
 
+    // ─── DEVICE ORIENTATION TRACKING ──────────────────────────────────────────
+    function enableDeviceOrientation() {
+      if (deviceOrientationEnabled) return;
+      // iOS 13+ requires permission
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().then(state => {
+          if (state === 'granted') setupOrientationListener();
+        }).catch(() => {});
+      } else {
+        setupOrientationListener();
+      }
+    }
+
+    function setupOrientationListener() {
+      window.addEventListener('deviceorientation', (e) => {
+        if (e.alpha === null) return;
+        deviceOrientationEnabled = true;
+        // Capture initial heading so we can offset from it
+        if (initialAlpha === null) initialAlpha = e.alpha;
+        orientAlpha = e.alpha;
+        orientBeta = e.beta;
+        orientGamma = e.gamma;
+      }, true);
+    }
+
+    function updateCameraFromOrientation() {
+      if (!deviceOrientationEnabled || !S.camActive) return;
+
+      const deg2rad = Math.PI / 180;
+      // Alpha = compass heading (z-axis rotation)
+      // Beta = front-back tilt (x-axis rotation) — 0 = flat, 90 = upright
+      // Gamma = left-right tilt (y-axis rotation)
+      const alpha = ((orientAlpha - (initialAlpha || 0)) % 360) * deg2rad;
+      const beta = (orientBeta || 90) * deg2rad;
+      const gamma = (orientGamma || 0) * deg2rad;
+
+      // Create rotation from device orientation
+      // Phone held upright (portrait): beta~90, gamma~0
+      const euler = new THREE.Euler();
+      // Convert device orientation to camera rotation
+      // When phone is upright (beta=90), camera should look forward (horizontal)
+      euler.set(
+        beta - Math.PI / 2,  // pitch: beta=90° → looking forward
+        -alpha,               // yaw: compass rotation
+        -gamma,               // roll: tilt left/right
+        'YXZ'
+      );
+      cam3.quaternion.setFromEuler(euler);
+    }
+
     function renderLoop(t = 0) {
       requestAnimationFrame(renderLoop);
       const dt = t - lastFT; lastFT = t; fpsCnt = Math.round(1000 / (dt || 16));
       document.getElementById('fps-counter').textContent = fpsCnt + ' FPS';
       document.getElementById('hud-fps').textContent = fpsCnt + ' FPS';
+
+      // Update camera from device orientation on mobile
+      if (isMobile) updateCameraFromOrientation();
+
       Object.values(objs).forEach(o => {
         if (o && o.userData && o.userData.isPlaced) {
           const base = o.userData.baseY;
@@ -2170,6 +2257,7 @@
     function onResize() {
       const vp = document.getElementById('viewport');
       const w = vp.clientWidth, h = vp.clientHeight;
+      if (w === 0 || h === 0) return;
       cam3.aspect = w / h; cam3.updateProjectionMatrix();
       renderer.setSize(w, h);
     }
@@ -2291,6 +2379,8 @@
       S.items = []; S.theme = null; S.paint = null; S.lighting = 'natural';
       // Reset floor detection — require re-scan
       S.floorDetected = false; S.camActive = false;
+      initialAlpha = null; deviceOrientationEnabled = false;
+      cam3.position.set(0, 1.6, 3.5); cam3.lookAt(0, 0, 0);
       document.getElementById('floor-indicator').classList.remove('visible', 'detected');
       document.getElementById('scan').classList.remove('hidden');
       document.getElementById('scan-bar').style.width = '0%';
@@ -2324,6 +2414,10 @@
         document.getElementById('cam').srcObject = stream;
         S.camActive = true;
         S.floorDetected = false;
+        // Enable gyroscope tracking on mobile
+        if (isMobile) enableDeviceOrientation();
+        // Force resize to match viewport after layout
+        setTimeout(onResize, 100);
         animScan(['DETECTING WALLS...', 'MAPPING FLOOR...', 'ANALYZING DEPTH...', 'CALIBRATING AR...', 'READY!']);
       } catch (e) {
         btn.textContent = '🎥 Start Camera'; btn.disabled = false;
@@ -2335,6 +2429,8 @@
     function startDemo() {
       S.camActive = true;
       S.floorDetected = false;
+      if (isMobile) enableDeviceOrientation();
+      setTimeout(onResize, 100);
       animScan(['DEMO MODE', 'LOADING ROOM...', 'MAPPING FLOOR...', 'AR CALIBRATED!'], true);
     }
 
