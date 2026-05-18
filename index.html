@@ -1,2797 +1,1654 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>INTERIOR.AI — AR Room Designer</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <link
-    href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Outfit:wght@300;400;600;700;800;900&display=swap"
-    rel="stylesheet">
-  <style>
-    :root {
-      --bg: #06060f;
-      --bg2: #0b0b1a;
-      --panel: #0e0e1e;
-      --panel2: #141428;
-      --panel3: #1a1a32;
-      --border: rgba(255, 255, 255, 0.06);
-      --border2: rgba(255, 255, 255, 0.12);
-      --accent: #6c63ff;
-      --accent2: #00d4ff;
-      --accent3: #ff6b9d;
-      --gold: #ffb347;
-      --green: #00e5a0;
-      --text: #f0efff;
-      --muted: #5a5a7a;
-      --muted2: #8a8aaa;
-      --glow: rgba(108, 99, 255, 0.4);
-      --glow2: rgba(0, 212, 255, 0.3);
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent
-    }
-
-    html,
-    body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Outfit', sans-serif
-    }
-
-    /* ── LAYOUT ── */
-    #app {
-      display: grid;
-      grid-template-columns: 270px 1fr 290px;
-      grid-template-rows: 56px 1fr 100px;
-      height: 100vh
-    }
-
-    @media(max-width:1000px) {
-      #app {
-        grid-template-columns: 220px 1fr 240px
-      }
-    }
-
-    @media(max-width:900px) {
-      #app {
-        grid-template-columns: 1fr !important;
-        grid-template-rows: 44px 1fr 68px !important;
-        height: 100vh;
-        height: 100dvh;
-      }
-
-      #header {
-        padding: 0 10px !important;
-        grid-column: 1 / -1;
-        height: 44px !important;
-        min-height: 44px;
-      }
-
-      #left-panel {
-        display: none !important;
-        visibility: hidden !important;
-      }
-
-      #right-panel {
-        display: none !important;
-        visibility: hidden !important;
-      }
-
-      #mobile-drawer {
-        display: flex !important;
-      }
-
-      #bottom-bar {
-        display: none !important;
-      }
-
-      #mobile-bottom {
-        display: flex !important;
-        grid-column: 1 / -1;
-      }
-
-      #viewport {
-        grid-column: 1 / -1 !important;
-        grid-row: 2 / 3 !important;
-        width: 100% !important;
-        min-height: 0;
-        cursor: pointer;
-      }
-
-      .logo { font-size: 14px }
-      .logo-icon { width: 22px; height: 22px; font-size: 11px; border-radius: 6px }
-      .logo-sub { display: none }
-      .hbtn:not(.pri) { display: none !important }
-      .hbtn.pri { padding: 5px 10px; font-size: 10px; border-radius: 6px }
-      .hstatus { font-size: 9px; gap: 8px }
-      .hstatus-extra { display: none !important }
-
-      .hud { font-size: 8px; opacity: .6 }
-      .hud-tl { top: 8px; left: 8px }
-      .hud-tr { top: 8px; right: 8px }
-      .hud-bl { bottom: 8px; left: 8px }
-      .hud-br { bottom: 8px; right: 8px }
-      .corner { width: 12px; height: 12px }
-      #xhair { width: 20px; height: 20px }
-
-      #scan .sring { width: 120px; height: 120px }
-      #scan .stxt { font-size: 11px; letter-spacing: 2px }
-      #scan .ssub { font-size: 10px }
-      #scambtn { padding: 10px 24px; font-size: 13px }
-      #scan .camhint { font-size: 9px }
-    }
-
-    /* ── SCROLLBARS ── */
-    ::-webkit-scrollbar {
-      width: 4px
-    }
-
-    ::-webkit-scrollbar-track {
-      background: transparent
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--border2);
-      border-radius: 2px
-    }
-
-    /* ── HEADER ── */
-    #header {
-      grid-column: 1/-1;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      border-bottom: 1px solid var(--border);
-      background: linear-gradient(90deg, rgba(108, 99, 255, 0.05) 0%, rgba(0, 212, 255, 0.03) 100%);
-      position: relative;
-      z-index: 20;
-      backdrop-filter: blur(10px);
-    }
-
-    .logo {
-      font-size: 17px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      display: flex;
-      align-items: center;
-      gap: 8px
-    }
-
-    .logo-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px
-    }
-
-    .logo-text span {
-      color: var(--accent2)
-    }
-
-    .logo-sub {
-      font-size: 9px;
-      color: var(--muted);
-      font-family: 'DM Mono';
-      margin-top: 2px;
-      letter-spacing: 1px
-    }
-
-    .hstatus {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      font-family: 'DM Mono';
-      font-size: 10px;
-      color: var(--muted)
-    }
-
-    @media(max-width:600px) {
-      .hstatus .hstatus-extra {
-        display: none
-      }
-    }
-
-    .sdot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 8px var(--green);
-      animation: pdot 2s infinite
-    }
-
-    @keyframes pdot {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: 0.3
-      }
-    }
-
-    .hactions {
-      display: flex;
-      gap: 8px
-    }
-
-    .hbtn {
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 11px;
-      font-family: 'DM Mono';
-      cursor: pointer;
-      transition: all .2s;
-      border: 1px solid var(--border2);
-      background: var(--panel2);
-      color: var(--text);
-      white-space: nowrap
-    }
-
-    .hbtn:hover {
-      border-color: var(--accent);
-      color: var(--accent)
-    }
-
-    .hbtn.pri {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff
-    }
-
-    .hbtn.pri:hover {
-      background: #8b83ff;
-      box-shadow: 0 0 20px var(--glow)
-    }
-
-    @media(max-width:600px) {
-      .hbtn:not(.pri) {
-        display: none
-      }
-    }
-
-    /* ── PANELS ── */
-    #left-panel,
-    #right-panel {
-      overflow-y: auto;
-      overflow-x: hidden;
-      background: var(--panel);
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-
-    #left-panel {
-      grid-row: 2/3;
-      border-right: 1px solid var(--border)
-    }
-
-    #right-panel {
-      grid-row: 2/3;
-      border-left: 1px solid var(--border)
-    }
-
-    .psect {
-      padding: 14px 14px;
-      border-bottom: 1px solid var(--border)
-    }
-
-    .slabel {
-      font-family: 'DM Mono';
-      font-size: 9px;
-      letter-spacing: 2px;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px
-    }
-
-    .slabel::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border)
-    }
-
-    /* ── THEMES ── */
-    .tgrid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 6px
-    }
-
-    .tcard {
-      position: relative;
-      border-radius: 10px;
-      overflow: hidden;
-      aspect-ratio: .9;
-      cursor: pointer;
-      border: 1.5px solid transparent;
-      transition: all .25s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      padding: 6px;
-    }
-
-    .tcard:hover {
-      transform: scale(1.04);
-      border-color: var(--accent)
-    }
-
-    .tcard.active {
-      border-color: var(--accent2);
-      box-shadow: 0 0 16px var(--glow2)
-    }
-
-    .tcard canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%
-    }
-
-    .tcard .tn {
-      position: relative;
-      z-index: 2;
-      font-size: 9px;
-      font-weight: 700;
-      color: #fff;
-      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
-      letter-spacing: .5px;
-      text-align: center
-    }
-
-    .tcard .te {
-      position: relative;
-      z-index: 2;
-      font-size: 18px;
-      margin-bottom: 2px
-    }
-
-    /* ── FURNITURE ── */
-    .flist {
-      display: flex;
-      flex-direction: column;
-      gap: 5px
-    }
-
-    .fitem {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: var(--panel2);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: all .2s;
-    }
-
-    .fitem:hover {
-      border-color: var(--accent);
-      transform: translateX(3px)
-    }
-
-    .fitem.sel {
-      border-color: var(--accent);
-      background: rgba(108, 99, 255, 0.12)
-    }
-
-    .fitem .fi {
-      font-size: 16px;
-      width: 24px;
-      text-align: center
-    }
-
-    .fitem .fn {
-      font-size: 11px;
-      font-weight: 600
-    }
-
-    .fitem .fs {
-      font-size: 9px;
-      color: var(--muted);
-      font-family: 'DM Mono'
-    }
-
-    .fitem .fa {
-      font-size: 16px;
-      color: var(--muted);
-      margin-left: auto;
-      transition: color .2s
-    }
-
-    .fitem:hover .fa,
-    .fitem.sel .fa {
-      color: var(--accent)
-    }
-
-    /* ── COLORS ── */
-    .crow {
-      display: flex;
-      gap: 5px;
-      flex-wrap: wrap;
-      margin-bottom: 6px
-    }
-
-    .csw {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: all .2s;
-      position: relative;
-    }
-
-    .csw:hover,
-    .csw.active {
-      border-color: #fff;
-      transform: scale(1.2)
-    }
-
-    .csw.active::after {
-      content: '✓';
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      color: #fff;
-      font-weight: 700
-    }
-
-    .rng-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-top: 8px
-    }
-
-    .rng-wrap label {
-      font-size: 10px;
-      color: var(--muted);
-      font-family: 'DM Mono';
-      display: flex;
-      justify-content: space-between
-    }
-
-    input[type=range] {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 3px;
-      border-radius: 2px;
-      background: var(--border2);
-      outline: none
-    }
-
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: var(--accent);
-      cursor: pointer;
-      box-shadow: 0 0 8px var(--glow)
-    }
-
-    /* ── VIEWPORT ── */
-    #viewport {
-      grid-row: 2/3;
-      position: relative;
-      overflow: hidden;
-      background: #000;
-      cursor: crosshair
-    }
-
-    #cam {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      opacity: .93
-    }
-
-    #three-canvas {
-      position: absolute;
-      inset: 0;
-      width: 100% !important;
-      height: 100% !important;
-      pointer-events: none
-    }
-
-    #poverlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 2;
-      opacity: 0;
-      transition: opacity .8s;
-      mix-blend-mode: multiply
-    }
-
-    #loverlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 3;
-      background: transparent;
-      transition: background 1.2s
-    }
-
-    #toverlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 2;
-      opacity: 0;
-      transition: opacity 1.5s
-    }
-
-    /* HUD */
-    .hud {
-      position: absolute;
-      z-index: 8;
-      font-family: 'DM Mono';
-      font-size: 9px;
-      color: rgba(255, 255, 255, .45);
-      pointer-events: none;
-      line-height: 1.8
-    }
-
-    .hud-tl {
-      top: 12px;
-      left: 12px
-    }
-
-    .hud-tr {
-      top: 12px;
-      right: 12px;
-      text-align: right
-    }
-
-    .hud-bl {
-      bottom: 12px;
-      left: 12px
-    }
-
-    .hud-br {
-      bottom: 12px;
-      right: 12px;
-      text-align: right
-    }
-
-    .hud-line {
-      position: absolute;
-      pointer-events: none;
-      z-index: 1
-    }
-
-    .hud-h {
-      left: 0;
-      right: 0;
-      border-top: 1px solid rgba(255, 255, 255, .03)
-    }
-
-    .hud-v {
-      top: 0;
-      bottom: 0;
-      border-left: 1px solid rgba(255, 255, 255, .03)
-    }
-
-    #xhair {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 24px;
-      height: 24px;
-      pointer-events: none;
-      z-index: 10;
-      opacity: .5
-    }
-
-    #xhair::before,
-    #xhair::after {
-      content: '';
-      position: absolute;
-      background: var(--accent2)
-    }
-
-    #xhair::before {
-      left: 50%;
-      top: 15%;
-      width: 1px;
-      height: 70%;
-      transform: translateX(-50%)
-    }
-
-    #xhair::after {
-      top: 50%;
-      left: 15%;
-      height: 1px;
-      width: 70%;
-      transform: translateY(-50%)
-    }
-
-    /* Corner brackets */
-    .corner {
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      pointer-events: none;
-      z-index: 9
-    }
-
-    .corner::before,
-    .corner::after {
-      content: '';
-      position: absolute;
-      background: var(--accent2);
-      opacity: .6
-    }
-
-    .corner.tl {
-      top: 10px;
-      left: 10px
-    }
-
-    .corner.tl::before {
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 1.5px
-    }
-
-    .corner.tl::after {
-      top: 0;
-      left: 0;
-      width: 1.5px;
-      height: 100%
-    }
-
-    .corner.tr {
-      top: 10px;
-      right: 10px
-    }
-
-    .corner.tr::before {
-      top: 0;
-      right: 0;
-      width: 100%;
-      height: 1.5px
-    }
-
-    .corner.tr::after {
-      top: 0;
-      right: 0;
-      width: 1.5px;
-      height: 100%
-    }
-
-    .corner.bl {
-      bottom: 10px;
-      left: 10px
-    }
-
-    .corner.bl::before {
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 1.5px
-    }
-
-    .corner.bl::after {
-      bottom: 0;
-      left: 0;
-      width: 1.5px;
-      height: 100%
-    }
-
-    .corner.br {
-      bottom: 10px;
-      right: 10px
-    }
-
-    .corner.br::before {
-      bottom: 0;
-      right: 0;
-      width: 100%;
-      height: 1.5px
-    }
-
-    .corner.br::after {
-      bottom: 0;
-      right: 0;
-      width: 1.5px;
-      height: 100%
-    }
-
-    /* Scan overlay */
-    #scan {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, .85);
-      z-index: 20;
-      transition: opacity .5s;
-      backdrop-filter: blur(4px);
-    }
-
-    #scan.hidden {
-      opacity: 0;
-      pointer-events: none
-    }
-
-    /* Floor detection indicator */
-    #floor-indicator {
-      position: absolute;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 15;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      animation: fadeInUp .5s ease;
-    }
-    @media(max-width:768px) {
-      #floor-indicator { bottom: 76px }
-    }
-    #floor-indicator.visible { display: flex }
-    #floor-indicator.detected .fi-ring { border-color: var(--green); box-shadow: 0 0 24px rgba(0,229,160,.4) }
-    #floor-indicator.detected .fi-text { color: var(--green) }
-
-    .fi-ring {
-      width: 56px; height: 56px; border-radius: 50%;
-      border: 2px solid var(--accent2);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-      background: rgba(0,0,0,.5);
-      backdrop-filter: blur(6px);
-      animation: fiPulse 2s infinite;
-      transition: all .4s;
-    }
-    @keyframes fiPulse { 0%,100%{box-shadow:0 0 12px rgba(0,212,255,.3)} 50%{box-shadow:0 0 28px rgba(0,212,255,.6)} }
-
-    .fi-text {
-      font-family: 'DM Mono'; font-size: 10px;
-      color: var(--accent2); letter-spacing: 1.5px;
-      text-align: center; transition: color .4s;
-    }
-
-    @keyframes fadeInUp {
-      from { opacity:0; transform:translateX(-50%) translateY(12px) }
-      to { opacity:1; transform:translateX(-50%) translateY(0) }
-    }
-
-    /* No-floor warning toast */
-    #no-floor-warn {
-      position: absolute;
-      top: 50%; left: 50%; transform: translate(-50%,-50%);
-      z-index: 18;
-      background: rgba(255,60,60,.15);
-      border: 1px solid rgba(255,100,100,.4);
-      border-radius: 12px;
-      padding: 14px 22px;
-      font-family: 'DM Mono'; font-size: 12px;
-      color: #ff8888;
-      backdrop-filter: blur(8px);
-      display: none; text-align: center;
-      animation: shakeWarn .4s ease;
-    }
-    #no-floor-warn.visible { display: block }
-    @keyframes shakeWarn { 0%,100%{transform:translate(-50%,-50%)} 25%{transform:translate(-48%,-50%)} 75%{transform:translate(-52%,-50%)} }
-
-    .sring {
-      width: 180px;
-      height: 180px;
-      border-radius: 50%;
-      border: 1.5px solid var(--accent2);
-      box-shadow: 0 0 40px rgba(0, 212, 255, .3), inset 0 0 40px rgba(0, 212, 255, .1);
-      animation: spin 4s linear infinite;
-      position: relative
-    }
-
-    @keyframes spin {
-      from {
-        transform: rotate(0deg)
-      }
-
-      to {
-        transform: rotate(360deg)
-      }
-    }
-
-    .sring::before {
-      content: '';
-      position: absolute;
-      inset: 12px;
-      border-radius: 50%;
-      border: 1px solid rgba(0, 212, 255, .2);
-      animation: spin 2s linear infinite reverse
-    }
-
-    .sring::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent2);
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 20px var(--accent2)
-    }
-
-    .stxt {
-      margin-top: 24px;
-      font-family: 'DM Mono';
-      font-size: 12px;
-      color: var(--accent2);
-      letter-spacing: 3px;
-      animation: blink 1.5s infinite
-    }
-
-    @keyframes blink {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: .3
-      }
-    }
-
-    .ssub {
-      margin-top: 8px;
-      font-size: 11px;
-      color: var(--muted);
-      font-family: 'DM Mono'
-    }
-
-    .spbar {
-      margin-top: 18px;
-      width: 180px;
-      height: 2px;
-      background: var(--border2);
-      border-radius: 2px;
-      overflow: hidden
-    }
-
-    .spfill {
-      height: 100%;
-      background: var(--accent2);
-      width: 0%;
-      border-radius: 2px;
-      transition: width .1s;
-      box-shadow: 0 0 8px var(--accent2)
-    }
-
-    #scambtn {
-      margin-top: 20px;
-      padding: 11px 28px;
-      border-radius: 10px;
-      background: var(--accent);
-      border: none;
-      color: #fff;
-      font-family: 'Outfit';
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      letter-spacing: .3px;
-      box-shadow: 0 0 24px var(--glow);
-      transition: all .2s;
-    }
-
-    #scambtn:hover {
-      background: #8b83ff;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 32px var(--glow)
-    }
-
-    .camhint {
-      font-size: 10px;
-      color: var(--muted);
-      font-family: 'DM Mono';
-      text-align: center;
-      margin-top: 8px;
-      line-height: 1.7
-    }
-
-    /* ── AI PANEL ── */
-    .ai-wrap {
-      padding: 14px;
-      border-bottom: 1px solid var(--border)
-    }
-
-    .ai-hdr {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px
-    }
-
-    .ai-badge {
-      padding: 3px 8px;
-      border-radius: 5px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      font-size: 9px;
-      font-family: 'DM Mono';
-      font-weight: 500;
-      letter-spacing: 1px;
-      color: #fff
-    }
-
-    .ai-inp-w {
-      position: relative
-    }
-
-    .ai-inp {
-      width: 100%;
-      padding: 9px 36px 9px 11px;
-      border-radius: 8px;
-      background: var(--panel2);
-      border: 1px solid var(--border2);
-      color: var(--text);
-      font-family: 'Outfit';
-      font-size: 12px;
-      resize: none;
-      outline: none;
-      height: 64px;
-      transition: border-color .2s;
-      line-height: 1.5;
-    }
-
-    .ai-inp:focus {
-      border-color: var(--accent)
-    }
-
-    .ai-inp::placeholder {
-      color: var(--muted)
-    }
-
-    .ai-send {
-      position: absolute;
-      right: 7px;
-      bottom: 7px;
-      width: 26px;
-      height: 26px;
-      border-radius: 6px;
-      background: var(--accent);
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      transition: all .2s;
-      color: #fff;
-    }
-
-    .ai-send:hover {
-      background: #8b83ff;
-      box-shadow: 0 0 12px var(--glow)
-    }
-
-    .qp-list {
-      display: flex;
-      flex-direction: column;
-      gap: 5px
-    }
-
-    .qpchip {
-      padding: 7px 10px;
-      border-radius: 7px;
-      background: var(--panel2);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      font-size: 10px;
-      transition: all .2s;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-family: 'DM Mono';
-      color: var(--muted2);
-    }
-
-    .qpchip:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      transform: translateX(3px)
-    }
-
-    .qpchip .qi {
-      font-size: 13px
-    }
-
-    .ai-resp {
-      background: var(--panel2);
-      border-radius: 8px;
-      padding: 11px;
-      font-size: 11px;
-      line-height: 1.75;
-      color: var(--text);
-      border-left: 2px solid var(--accent);
-      font-family: 'DM Mono';
-      min-height: 70px;
-    }
-
-    .ai-resp.typing::after {
-      content: '▋';
-      animation: blink .7s infinite
-    }
-
-    .ai-dots {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      padding: 8px 0
-    }
-
-    .ai-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--accent);
-      animation: bdot 1.2s infinite
-    }
-
-    .ai-dot:nth-child(2) {
-      animation-delay: .2s
-    }
-
-    .ai-dot:nth-child(3) {
-      animation-delay: .4s
-    }
-
-    @keyframes bdot {
-
-      0%,
-      100% {
-        transform: translateY(0)
-      }
-
-      50% {
-        transform: translateY(-5px)
-      }
-    }
-
-    /* Stats */
-    .sgrid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 7px;
-      padding: 14px
-    }
-
-    .scard {
-      background: var(--panel2);
-      border-radius: 8px;
-      padding: 11px;
-      border: 1px solid var(--border)
-    }
-
-    .sval {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--accent)
-    }
-
-    .slbl {
-      font-size: 9px;
-      color: var(--muted);
-      font-family: 'DM Mono';
-      letter-spacing: 1px;
-      margin-top: 2px
-    }
-
-    /* Lighting */
-    .lbtns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5px
-    }
-
-    .lbtn {
-      padding: 8px 6px;
-      border-radius: 7px;
-      background: var(--panel2);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      font-size: 9px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      transition: all .2s;
-      font-family: 'DM Mono';
-      color: var(--muted);
-    }
-
-    .lbtn:hover {
-      border-color: var(--accent);
-      color: var(--accent)
-    }
-
-    .lbtn.active {
-      border-color: var(--accent2);
-      color: var(--accent2);
-      background: rgba(0, 212, 255, .08)
-    }
-
-    .lbtn .li {
-      font-size: 18px
-    }
-
-    /* Placed list */
-    .plist {
-      padding: 14px
-    }
-
-    .prow {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 7px 9px;
-      border-radius: 7px;
-      background: var(--panel2);
-      border: 1px solid var(--border);
-      margin-bottom: 5px;
-      font-size: 11px;
-    }
-
-    .pi {
-      font-size: 14px
-    }
-
-    .pn {
-      flex: 1;
-      font-family: 'DM Mono';
-      font-size: 10px
-    }
-
-    .pdel {
-      cursor: pointer;
-      color: var(--muted);
-      font-size: 13px;
-      transition: color .2s;
-      line-height: 1
-    }
-
-    .pdel:hover {
-      color: #ff6b6b
-    }
-
-    /* ── BOTTOM BAR ── */
-    #bottom-bar {
-      grid-column: 1/-1;
-      background: var(--panel);
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 8px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    #bottom-bar::-webkit-scrollbar {
-      display: none
-    }
-
-    .btool {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      padding: 8px 12px;
-      border-radius: 9px;
-      cursor: pointer;
-      border: 1px solid transparent;
-      transition: all .2s;
-      min-width: 60px;
-      font-size: 9px;
-      color: var(--muted);
-      font-family: 'DM Mono';
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .btool:hover {
-      border-color: var(--border2);
-      color: var(--text);
-      background: var(--panel2)
-    }
-
-    .btool.active {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: rgba(108, 99, 255, .12)
-    }
-
-    .btool .bi {
-      font-size: 20px
-    }
-
-    .bsep {
-      width: 1px;
-      height: 40px;
-      background: var(--border);
-      flex-shrink: 0
-    }
-
-    /* ── MOBILE ── */
-    #mobile-bottom {
-      display: none;
-      grid-column: 1/-1;
-      background: linear-gradient(180deg, var(--panel) 0%, var(--bg) 100%);
-      border-top: 1px solid var(--border);
-      align-items: center;
-      justify-content: space-around;
-      padding: 0 4px;
-      height: 68px;
-      padding-bottom: env(safe-area-inset-bottom, 0);
-    }
-
-    .mbtool {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      padding: 8px 10px;
-      border-radius: 12px;
-      cursor: pointer;
-      border: 1.5px solid transparent;
-      transition: all .25s;
-      font-size: 9px;
-      color: var(--muted);
-      font-family: 'DM Mono';
-      letter-spacing: .3px;
-      min-width: 54px;
-    }
-
-    .mbtool:hover,
-    .mbtool.active {
-      color: var(--accent);
-      background: rgba(108, 99, 255, .12);
-      border-color: var(--accent);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(108,99,255,.2);
-    }
-
-    .mbtool .mbi {
-      font-size: 22px
-    }
-
-    #mobile-drawer {
-      display: none;
-      position: fixed;
-      bottom: 68px;
-      left: 0;
-      right: 0;
-      background: rgba(14, 14, 30, .96);
-      backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(108, 99, 255, .15);
-      z-index: 50;
-      transform: translateY(100%);
-      transition: transform .35s cubic-bezier(.2,.9,.3,1);
-      max-height: 65vh;
-      overflow-y: auto;
-      border-radius: 20px 20px 0 0;
-      padding-bottom: env(safe-area-inset-bottom, 0);
-      box-shadow: 0 -8px 40px rgba(0,0,0,.5);
-    }
-
-    #mobile-drawer.open {
-      transform: translateY(0)
-    }
-
-    .drawer-handle {
-      width: 40px;
-      height: 4px;
-      border-radius: 2px;
-      background: var(--border2);
-      margin: 10px auto 14px
-    }
-
-    .drawer-tabs {
-      display: flex;
-      border-bottom: 1px solid var(--border);
-      overflow-x: auto;
-      scrollbar-width: none
-    }
-
-    .drawer-tabs::-webkit-scrollbar {
-      display: none
-    }
-
-    .dtab {
-      padding: 10px 16px;
-      font-size: 11px;
-      font-family: 'DM Mono';
-      color: var(--muted);
-      cursor: pointer;
-      white-space: nowrap;
-      border-bottom: 2px solid transparent;
-      transition: all .2s
-    }
-
-    .dtab.active {
-      color: var(--accent);
-      border-color: var(--accent)
-    }
-
-    .dtabcont {
-      display: none;
-      padding: 12px 14px
-    }
-
-    .dtabcont.active {
-      display: block
-    }
-
-    /* Mobile theme grid */
-    .m-tgrid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px
-    }
-
-    .m-tcard {
-      position: relative;
-      border-radius: 10px;
-      overflow: hidden;
-      aspect-ratio: .9;
-      cursor: pointer;
-      border: 1.5px solid transparent;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      padding: 6px;
-      transition: all .25s
-    }
-
-    .m-tcard.active {
-      border-color: var(--accent2)
-    }
-
-    .m-tcard canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%
-    }
-
-    .m-tcard .tn {
-      position: relative;
-      z-index: 2;
-      font-size: 9px;
-      font-weight: 700;
-      color: #fff;
-      text-shadow: 0 1px 6px rgba(0, 0, 0, .9);
-      letter-spacing: .5px;
-      text-align: center
-    }
-
-    .m-tcard .te {
-      position: relative;
-      z-index: 2;
-      font-size: 18px;
-      margin-bottom: 2px
-    }
-
-    /* Mobile furniture */
-    .m-flist {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px
-    }
-
-    .m-fitem {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 10px 6px;
-      border-radius: 9px;
-      background: var(--panel2);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: all .2s;
-      gap: 4px;
-      font-size: 10px;
-      font-weight: 600;
-      text-align: center;
-    }
-
-    .m-fitem:hover,
-    .m-fitem.sel {
-      border-color: var(--accent);
-      color: var(--accent)
-    }
-
-    .m-fitem .mfi {
-      font-size: 22px
-    }
-
-    /* Mobile colors */
-    .m-crow {
-      display: flex;
-      gap: 7px;
-      flex-wrap: wrap;
-      margin-bottom: 8px
-    }
-
-    .m-csw {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: all .2s
-    }
-
-    .m-csw:hover,
-    .m-csw.active {
-      border-color: #fff;
-      transform: scale(1.15)
-    }
-
-    /* Mobile lighting */
-    .m-lbtns {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px
-    }
-
-    .m-lbtn {
-      padding: 10px 6px;
-      border-radius: 8px;
-      background: var(--panel2);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      font-size: 9px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      transition: all .2s;
-      font-family: 'DM Mono';
-      color: var(--muted)
-    }
-
-    .m-lbtn.active {
-      border-color: var(--accent2);
-      color: var(--accent2);
-      background: rgba(0, 212, 255, .08)
-    }
-
-    .m-lbtn .mli {
-      font-size: 20px
-    }
-
-    /* Mobile AI */
-    .m-ai-inp {
-      width: 100%;
-      padding: 10px 42px 10px 12px;
-      border-radius: 9px;
-      background: var(--panel2);
-      border: 1px solid var(--border2);
-      color: var(--text);
-      font-family: 'Outfit';
-      font-size: 13px;
-      resize: none;
-      outline: none;
-      height: 70px;
-      transition: border-color .2s;
-      line-height: 1.5
-    }
-
-    .m-ai-inp:focus {
-      border-color: var(--accent)
-    }
-
-    .m-ai-inp::placeholder {
-      color: var(--muted)
-    }
-
-    .m-ai-send {
-      position: absolute;
-      right: 8px;
-      bottom: 8px;
-      width: 30px;
-      height: 30px;
-      border-radius: 7px;
-      background: var(--accent);
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 15px;
-      color: #fff;
-      transition: all .2s
-    }
-
-    .m-ai-send:hover {
-      background: #8b83ff
-    }
-
-    .m-ai-resp {
-      background: var(--panel2);
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 11px;
-      line-height: 1.7;
-      color: var(--text);
-      border-left: 2px solid var(--accent);
-      font-family: 'DM Mono';
-      margin-top: 10px;
-      min-height: 60px
-    }
-
-    .m-ai-resp.typing::after {
-      content: '▋';
-      animation: blink .7s infinite
-    }
-
-    /* mobile quick prompts */
-    .m-qps {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      margin-top: 10px
-    }
-
-    .m-qp {
-      padding: 8px 11px;
-      border-radius: 7px;
-      background: var(--panel2);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      font-size: 10px;
-      transition: all .2s;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-family: 'DM Mono';
-      color: var(--muted2)
-    }
-
-    .m-qp:hover {
-      border-color: var(--accent);
-      color: var(--accent)
-    }
-
-    /* Toast */
-    #toast {
-      position: fixed;
-      bottom: 120px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--panel2);
-      border: 1px solid var(--accent);
-      border-radius: 10px;
-      padding: 9px 18px;
-      font-size: 12px;
-      font-family: 'DM Mono';
-      color: var(--accent);
-      box-shadow: 0 0 24px var(--glow);
-      z-index: 200;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .3s;
-      white-space: nowrap;
-    }
-
-    @media(max-width:768px) {
-      #toast {
-        bottom: 80px
-      }
-    }
-
-    #toast.show {
-      opacity: 1
-    }
-
-    /* Floating tool indicator */
-    #tool-indicator {
-      position: absolute;
-      bottom: 16px;
-      right: 16px;
-      z-index: 12;
-      background: rgba(108, 99, 255, .9);
-      border-radius: 10px;
-      padding: 7px 12px;
-      font-size: 10px;
-      font-family: 'DM Mono';
-      color: #fff;
-      display: none;
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, .2);
-    }
-
-    #tool-indicator.visible {
-      display: block
-    }
-
-    /* Selected furniture glow indicator on mobile */
-    #sel-indicator {
-      position: absolute;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 12;
-      background: rgba(0, 212, 255, .9);
-      border-radius: 8px;
-      padding: 6px 14px;
-      font-size: 10px;
-      font-family: 'DM Mono';
-      color: #fff;
-      display: none;
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, .2);
-      white-space: nowrap;
-    }
-
-    #sel-indicator.visible {
-      display: block
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>INTERIOR.AI — AR Room Designer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne+Mono&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #04040a;
+  --glass: rgba(8,8,20,0.82);
+  --glass2: rgba(12,12,28,0.9);
+  --panel: rgba(14,14,30,0.88);
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.14);
+  --accent: #7c6dfa;
+  --accent2: #00e5ff;
+  --accent3: #ff4d8d;
+  --gold: #ffb830;
+  --green: #00f5a0;
+  --red: #ff4444;
+  --text: #eeeeff;
+  --text2: #9494b8;
+  --glow: rgba(124,109,250,0.5);
+  --glow2: rgba(0,229,255,0.4);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Space Grotesk',sans-serif;color:var(--text)}
+
+/* ── FULL SCREEN CAMERA ── */
+#app{position:fixed;inset:0;width:100%;height:100%}
+
+#cam-bg{
+  position:fixed;inset:0;
+  width:100%;height:100%;
+  object-fit:cover;
+  z-index:0;
+  background:#000;
+}
+
+#three-canvas{
+  position:fixed;inset:0;
+  width:100%!important;height:100%!important;
+  z-index:1;
+  pointer-events:auto;
+}
+
+/* Atmospheric overlays */
+#atmo{
+  position:fixed;inset:0;z-index:2;
+  pointer-events:none;
+  background:radial-gradient(ellipse at 50% 0%,rgba(124,109,250,0.06) 0%,transparent 60%),
+             radial-gradient(ellipse at 100% 100%,rgba(0,229,255,0.04) 0%,transparent 50%);
+  mix-blend-mode:screen;
+}
+#light-overlay{position:fixed;inset:0;z-index:2;pointer-events:none;transition:background 1.2s,filter 1.2s}
+#paint-overlay{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .8s,background .8s;mix-blend-mode:color}
+
+/* ── SCAN SCREEN ── */
+#scan-screen{
+  position:fixed;inset:0;z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(4,4,12,0.96);
+  backdrop-filter:blur(20px);
+  transition:opacity .6s,pointer-events .6s;
+}
+#scan-screen.hidden{opacity:0;pointer-events:none}
+
+.scan-ring-outer{
+  width:200px;height:200px;border-radius:50%;
+  border:1.5px solid rgba(0,229,255,0.3);
+  display:flex;align-items:center;justify-content:center;
+  animation:ringSpin 8s linear infinite;
+  position:relative;
+}
+.scan-ring-inner{
+  width:160px;height:160px;border-radius:50%;
+  border:1px solid rgba(124,109,250,0.4);
+  display:flex;align-items:center;justify-content:center;
+  animation:ringSpin 4s linear infinite reverse;
+}
+.scan-core{
+  width:70px;height:70px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,229,255,0.2),rgba(124,109,250,0.1));
+  border:1px solid rgba(0,229,255,0.5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;
+  box-shadow:0 0 40px rgba(0,229,255,0.2),inset 0 0 20px rgba(124,109,250,0.1);
+}
+@keyframes ringSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+.scan-title{
+  margin-top:32px;
+  font-family:'Syne',sans-serif;font-size:22px;font-weight:800;
+  letter-spacing:3px;color:#fff;text-align:center;
+}
+.scan-sub{
+  margin-top:8px;font-family:'Syne Mono';font-size:11px;
+  color:var(--text2);letter-spacing:2px;text-align:center;
+}
+.scan-progress-wrap{
+  margin-top:28px;width:220px;
+  background:rgba(255,255,255,0.06);border-radius:4px;height:2px;overflow:hidden;
+}
+.scan-progress{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .15s;border-radius:4px;box-shadow:0 0 12px var(--accent2)}
+.scan-status{
+  margin-top:12px;font-family:'Syne Mono';font-size:10px;
+  color:var(--accent2);letter-spacing:3px;
+  animation:blink 1.4s infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.scan-btn{
+  margin-top:28px;padding:14px 36px;
+  border-radius:14px;border:1px solid var(--accent2);
+  background:rgba(0,229,255,0.08);
+  color:var(--accent2);font-family:'Syne',sans-serif;font-size:15px;font-weight:700;
+  cursor:pointer;letter-spacing:1px;
+  box-shadow:0 0 30px rgba(0,229,255,0.15);
+  transition:all .25s;
+}
+.scan-btn:hover{background:rgba(0,229,255,0.18);box-shadow:0 0 50px rgba(0,229,255,0.3);transform:translateY(-2px)}
+.scan-hint{margin-top:12px;font-size:11px;color:rgba(255,255,255,0.25);font-family:'Syne Mono';text-align:center;line-height:1.8}
+
+/* ── HUD ELEMENTS ── */
+.corner{position:fixed;width:22px;height:22px;pointer-events:none;z-index:10}
+.corner::before,.corner::after{content:'';position:absolute;background:var(--accent2);opacity:.6}
+.corner.tl{top:14px;left:14px}.corner.tl::before{top:0;left:0;width:100%;height:1.5px}.corner.tl::after{top:0;left:0;width:1.5px;height:100%}
+.corner.tr{top:14px;right:14px}.corner.tr::before{top:0;right:0;width:100%;height:1.5px}.corner.tr::after{top:0;right:0;width:1.5px;height:100%}
+.corner.bl{bottom:14px;left:14px}.corner.bl::before{bottom:0;left:0;width:100%;height:1.5px}.corner.bl::after{bottom:0;left:0;width:1.5px;height:100%}
+.corner.br{bottom:14px;right:14px}.corner.br::before{bottom:0;right:0;width:100%;height:1.5px}.corner.br::after{bottom:0;right:0;width:1.5px;height:100%}
+
+#crosshair{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  pointer-events:none;z-index:10;
+  width:28px;height:28px;opacity:.4;
+}
+#crosshair::before{content:'';position:absolute;left:50%;top:10%;width:1px;height:80%;transform:translateX(-50%);background:var(--accent2)}
+#crosshair::after{content:'';position:absolute;top:50%;left:10%;height:1px;width:80%;transform:translateY(-50%);background:var(--accent2)}
+
+#hud-tl{
+  position:fixed;top:50px;left:14px;z-index:10;
+  font-family:'Syne Mono';font-size:8.5px;color:rgba(255,255,255,.35);line-height:2;
+  pointer-events:none;
+}
+#hud-tr{
+  position:fixed;top:50px;right:14px;z-index:10;
+  font-family:'Syne Mono';font-size:8.5px;color:rgba(255,255,255,.35);line-height:2;text-align:right;
+  pointer-events:none;
+}
+
+/* ── TOP BAR ── */
+#topbar{
+  position:fixed;top:0;left:0;right:0;z-index:20;
+  height:46px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 14px;
+  background:linear-gradient(180deg,rgba(4,4,16,0.95) 0%,rgba(4,4,16,0) 100%);
+  backdrop-filter:blur(0px);
+  pointer-events:auto;
+}
+.logo{display:flex;align-items:center;gap:9px;cursor:pointer}
+.logo-mark{
+  width:32px;height:32px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+  box-shadow:0 0 16px rgba(124,109,250,0.5);
+}
+.logo-text{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:-.3px}
+.logo-text span{color:var(--accent2)}
+.logo-sub{font-family:'Syne Mono';font-size:8px;color:var(--text2);letter-spacing:2px;margin-top:1px}
+
+#status-badge{
+  display:flex;align-items:center;gap:7px;
+  background:rgba(0,0,0,0.4);border-radius:20px;padding:5px 12px;
+  border:1px solid var(--border);backdrop-filter:blur(10px);
+}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+#status-text{font-family:'Syne Mono';font-size:9px;color:rgba(255,255,255,.6);letter-spacing:1.5px}
+#fps-text{font-family:'Syne Mono';font-size:9px;color:rgba(255,255,255,.3)}
+
+.top-actions{display:flex;gap:6px}
+.tbtn{
+  padding:6px 12px;border-radius:8px;
+  background:rgba(0,0,0,0.45);border:1px solid var(--border2);
+  color:rgba(255,255,255,.7);font-family:'Syne Mono';font-size:9px;
+  cursor:pointer;transition:all .2s;letter-spacing:.5px;
+  backdrop-filter:blur(10px);
+}
+.tbtn:hover{border-color:var(--accent);color:var(--accent)}
+.tbtn.pri{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 20px var(--glow)}
+.tbtn.pri:hover{background:#9485ff;box-shadow:0 0 32px var(--glow)}
+@media(max-width:600px){.tbtn:not(.pri){display:none}}
+
+/* ── FLOOR DETECTION ── */
+#floor-ring{
+  position:fixed;bottom:130px;left:50%;transform:translateX(-50%);
+  z-index:15;display:none;flex-direction:column;align-items:center;gap:10px;
+  animation:fadeUp .5s ease;
+}
+#floor-ring.show{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.fr-circle{
+  width:68px;height:68px;border-radius:50%;
+  border:2px solid var(--accent2);
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+  animation:frGlow 2s infinite;transition:all .5s;
+  box-shadow:0 0 24px rgba(0,229,255,0.3);
+}
+@keyframes frGlow{0%,100%{box-shadow:0 0 16px rgba(0,229,255,.25)}50%{box-shadow:0 0 36px rgba(0,229,255,.55)}}
+.fr-circle.ok{border-color:var(--green);box-shadow:0 0 30px rgba(0,245,160,.4)}
+.fr-label{font-family:'Syne Mono';font-size:9px;color:var(--accent2);letter-spacing:2px}
+.fr-label.ok{color:var(--green)}
+
+#no-floor{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:18;background:rgba(255,50,50,.12);
+  border:1px solid rgba(255,80,80,.35);border-radius:14px;
+  padding:14px 22px;font-family:'Syne Mono';font-size:11px;color:#ff8080;
+  backdrop-filter:blur(10px);display:none;text-align:center;
+  animation:shake .4s ease;
+}
+#no-floor.show{display:block}
+@keyframes shake{0%,100%{transform:translate(-50%,-50%)}25%{transform:translate(-48%,-50%)}75%{transform:translate(-52%,-50%)}}
+
+/* ── PLACEMENT INDICATOR ── */
+#place-hint{
+  position:fixed;top:58px;left:50%;transform:translateX(-50%);
+  z-index:15;background:rgba(0,229,255,.15);
+  border:1px solid rgba(0,229,255,.4);border-radius:10px;
+  padding:7px 16px;font-family:'Syne Mono';font-size:10px;color:var(--accent2);
+  backdrop-filter:blur(8px);display:none;white-space:nowrap;
+  animation:fadeDown .3s ease;letter-spacing:.5px;
+}
+#place-hint.show{display:block}
+@keyframes fadeDown{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* ── BOTTOM TOOL BAR ── */
+#bottom-tools{
+  position:fixed;bottom:0;left:0;right:0;z-index:20;
+  padding:0 10px 10px;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;gap:8px;
+  pointer-events:none;
+}
+
+#tool-row{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  pointer-events:auto;
+}
+
+.tool-btn{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:9px 10px;border-radius:14px;
+  background:rgba(6,6,18,0.8);border:1.5px solid rgba(255,255,255,0.08);
+  cursor:pointer;transition:all .25s;
+  font-family:'Syne Mono';font-size:8px;color:var(--text2);
+  min-width:52px;backdrop-filter:blur(16px);
+  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+}
+.tool-btn .ti{font-size:20px;line-height:1}
+.tool-btn:hover,.tool-btn.active{
+  border-color:var(--accent);color:var(--accent);
+  background:rgba(124,109,250,.15);
+  box-shadow:0 0 20px rgba(124,109,250,.25);
+  transform:translateY(-2px);
+}
+.tool-btn.danger:hover,.tool-btn.danger.active{
+  border-color:var(--red);color:var(--red);
+  background:rgba(255,68,68,.12);
+  box-shadow:0 0 20px rgba(255,68,68,.2);
+}
+
+#action-row{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  pointer-events:auto;
+}
+.action-btn{
+  padding:8px 14px;border-radius:12px;
+  background:rgba(6,6,18,0.8);border:1px solid rgba(255,255,255,0.08);
+  cursor:pointer;transition:all .2s;
+  font-family:'Syne Mono';font-size:9px;color:var(--text2);
+  backdrop-filter:blur(16px);display:flex;align-items:center;gap:5px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.35);
+}
+.action-btn:hover{border-color:var(--border2);color:var(--text)}
+
+/* ── SIDE PANELS ── */
+#left-panel,#right-panel{
+  position:fixed;top:46px;bottom:140px;z-index:18;
+  width:240px;overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent;
+  background:rgba(5,5,16,0.85);
+  backdrop-filter:blur(20px);
+  border:1px solid var(--border);
+  transition:transform .35s cubic-bezier(.2,.9,.3,1),opacity .3s;
+}
+#left-panel{left:0;border-radius:0 0 0 0;border-left:none;border-top:none;transform:translateX(0)}
+#right-panel{right:0;border-radius:0;border-right:none;border-top:none;transform:translateX(0)}
+
+#left-panel.hidden{transform:translateX(-105%);opacity:0;pointer-events:none}
+#right-panel.hidden{transform:translateX(105%);opacity:0;pointer-events:none}
+
+@media(max-width:860px){
+  #left-panel,#right-panel{display:none!important}
+  #mobile-panel{display:flex!important}
+}
+
+/* Panel sections */
+.psect{padding:12px 14px;border-bottom:1px solid var(--border)}
+.plabel{
+  font-family:'Syne Mono';font-size:8px;letter-spacing:2.5px;
+  color:rgba(255,255,255,.25);text-transform:uppercase;
+  margin-bottom:10px;display:flex;align-items:center;gap:6px;
+}
+.plabel::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.05)}
+
+/* Theme cards */
+.t-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.t-card{
+  position:relative;border-radius:10px;overflow:hidden;
+  aspect-ratio:.85;cursor:pointer;
+  border:1.5px solid transparent;transition:all .25s;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:6px;
+}
+.t-card:hover{transform:scale(1.04);border-color:rgba(255,255,255,.3)}
+.t-card.active{border-color:var(--accent2);box-shadow:0 0 20px rgba(0,229,255,.3)}
+.t-card canvas{position:absolute;inset:0;width:100%;height:100%}
+.t-card .tc-name{position:relative;z-index:2;font-size:8px;font-weight:700;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.9);letter-spacing:.5px;text-align:center}
+.t-card .tc-emoji{position:relative;z-index:2;font-size:17px;margin-bottom:2px}
+
+/* Furniture */
+.f-list{display:flex;flex-direction:column;gap:4px}
+.f-item{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  border-radius:9px;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);cursor:pointer;transition:all .2s;
+}
+.f-item:hover{border-color:var(--accent);transform:translateX(3px)}
+.f-item.sel{border-color:var(--accent);background:rgba(124,109,250,.1)}
+.f-item .fi-emoji{font-size:15px;width:22px;text-align:center}
+.f-item .fi-name{font-size:11px;font-weight:600;flex:1}
+.f-item .fi-dim{font-size:9px;color:var(--text2);font-family:'Syne Mono'}
+.f-item .fi-add{color:var(--text2);font-size:14px;transition:color .2s}
+.f-item:hover .fi-add,.f-item.sel .fi-add{color:var(--accent)}
+
+/* Colors */
+.c-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px}
+.c-swatch{
+  width:26px;height:26px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:all .2s;position:relative;
+}
+.c-swatch:hover,.c-swatch.active{border-color:#fff;transform:scale(1.2)}
+.c-swatch.active::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700}
+
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;background:rgba(255,255,255,.1);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 8px var(--glow)}
+
+/* Lighting */
+.l-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.l-btn{
+  padding:8px 6px;border-radius:9px;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);cursor:pointer;font-size:8px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  transition:all .2s;font-family:'Syne Mono';color:var(--text2);
+}
+.l-btn:hover{border-color:var(--accent);color:var(--accent)}
+.l-btn.active{border-color:var(--accent2);color:var(--accent2);background:rgba(0,229,255,.07)}
+.l-btn .li{font-size:17px}
+
+/* AI panel */
+.ai-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ai-chip{
+  padding:3px 8px;border-radius:6px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  font-size:8px;font-family:'Syne Mono';letter-spacing:1.5px;color:#fff;font-weight:600;
+}
+.ai-input{
+  width:100%;padding:9px 36px 9px 11px;border-radius:10px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border2);
+  color:var(--text);font-family:'Space Grotesk';font-size:12px;resize:none;
+  outline:none;height:68px;line-height:1.5;transition:border-color .2s;
+}
+.ai-input:focus{border-color:var(--accent)}
+.ai-input::placeholder{color:var(--text2)}
+.ai-send-btn{
+  position:absolute;right:7px;bottom:7px;width:26px;height:26px;
+  border-radius:7px;background:var(--accent);border:none;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:#fff;transition:all .2s;
+}
+.ai-send-btn:hover{background:#9485ff;box-shadow:0 0 16px var(--glow)}
+.qp-list{display:flex;flex-direction:column;gap:4px}
+.qp-chip{
+  padding:7px 10px;border-radius:8px;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);cursor:pointer;font-size:10px;
+  display:flex;align-items:center;gap:6px;
+  transition:all .2s;font-family:'Syne Mono';color:var(--text2);
+}
+.qp-chip:hover{border-color:var(--accent);color:var(--accent);transform:translateX(3px)}
+.ai-response{
+  background:rgba(255,255,255,.03);border-radius:9px;
+  padding:10px;font-size:11px;line-height:1.75;color:var(--text);
+  border-left:2px solid var(--accent);font-family:'Syne Mono';
+  min-height:68px;
+}
+.ai-response.typing::after{content:'▋';animation:blink .7s infinite}
+.ai-dots{display:flex;gap:4px;align-items:center;padding:6px 0}
+.ai-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:bdot 1.2s infinite}
+.ai-dot:nth-child(2){animation-delay:.2s}
+.ai-dot:nth-child(3){animation-delay:.4s}
+@keyframes bdot{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+/* Stats */
+.s-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:12px 14px}
+.s-card{background:rgba(255,255,255,.03);border-radius:8px;padding:10px;border:1px solid var(--border)}
+.s-val{font-size:22px;font-weight:800;color:var(--accent)}
+.s-lbl{font-size:8px;color:var(--text2);font-family:'Syne Mono';letter-spacing:1px;margin-top:2px}
+
+/* Placed items */
+.p-row{
+  display:flex;align-items:center;gap:7px;padding:7px 9px;
+  border-radius:8px;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);margin-bottom:4px;
+}
+.p-del{cursor:pointer;color:var(--text2);font-size:12px;transition:color .2s;margin-left:auto}
+.p-del:hover{color:var(--red)}
+
+/* ── MOBILE PANEL ── */
+#mobile-panel{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:25;
+  transform:translateY(100%);transition:transform .38s cubic-bezier(.2,.9,.3,1);
+  background:rgba(5,5,18,0.97);backdrop-filter:blur(30px);
+  border-top:1px solid rgba(124,109,250,.2);border-radius:24px 24px 0 0;
+  max-height:72vh;overflow-y:auto;
+  padding-bottom:env(safe-area-inset-bottom,0);
+  box-shadow:0 -12px 60px rgba(0,0,0,.7);
+}
+#mobile-panel.open{transform:translateY(0)}
+.drawer-grip{
+  width:44px;height:4px;border-radius:2px;background:rgba(255,255,255,.2);
+  margin:10px auto 4px;
+}
+.drawer-tabs{
+  display:flex;border-bottom:1px solid var(--border);
+  overflow-x:auto;scrollbar-width:none;position:sticky;top:0;
+  background:rgba(5,5,18,0.98);z-index:1;
+}
+.drawer-tabs::-webkit-scrollbar{display:none}
+.dtab{
+  padding:11px 16px;font-size:11px;font-family:'Syne Mono';
+  color:var(--text2);cursor:pointer;white-space:nowrap;
+  border-bottom:2px solid transparent;transition:all .2s;
+}
+.dtab.active{color:var(--accent);border-color:var(--accent)}
+.dtabcont{display:none;padding:14px}
+.dtabcont.active{display:block}
+
+/* Mobile theme */
+.m-tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.m-tcard{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:.9;cursor:pointer;border:1.5px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:7px;transition:all .25s}
+.m-tcard.active{border-color:var(--accent2);box-shadow:0 0 16px rgba(0,229,255,.2)}
+.m-tcard canvas{position:absolute;inset:0;width:100%;height:100%}
+.m-tcard .tn{position:relative;z-index:2;font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.9);text-align:center}
+.m-tcard .te{position:relative;z-index:2;font-size:20px;margin-bottom:2px}
+
+/* Mobile furniture */
+.m-fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.m-fitem{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:12px 6px;border-radius:12px;background:rgba(255,255,255,.04);
+  border:1px solid var(--border);cursor:pointer;transition:all .2s;
+  font-size:10px;font-weight:600;text-align:center;
+}
+.m-fitem:active,.m-fitem.sel{border-color:var(--accent);color:var(--accent);background:rgba(124,109,250,.1)}
+.m-fitem .mfi{font-size:24px}
+
+/* Mobile colors */
+.m-crow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.m-csw{width:34px;height:34px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .2s}
+.m-csw:active,.m-csw.active{border-color:#fff;transform:scale(1.15)}
+
+/* Mobile lighting */
+.m-lgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.m-lbtn{
+  padding:11px 6px;border-radius:10px;background:rgba(255,255,255,.04);
+  border:1px solid var(--border);cursor:pointer;font-size:8.5px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  transition:all .2s;font-family:'Syne Mono';color:var(--text2);
+}
+.m-lbtn.active{border-color:var(--accent2);color:var(--accent2);background:rgba(0,229,255,.08)}
+.m-lbtn .mli{font-size:22px}
+
+/* Mobile AI */
+.m-ai-inp{
+  width:100%;padding:11px 44px 11px 13px;border-radius:12px;
+  background:rgba(255,255,255,.05);border:1px solid var(--border2);
+  color:var(--text);font-family:'Space Grotesk';font-size:13px;resize:none;
+  outline:none;height:76px;line-height:1.5;
+}
+.m-ai-inp:focus{border-color:var(--accent)}
+.m-ai-inp::placeholder{color:var(--text2)}
+.m-ai-send{
+  position:absolute;right:8px;bottom:8px;width:32px;height:32px;
+  border-radius:9px;background:var(--accent);border:none;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:#fff;
+}
+.m-ai-resp{
+  background:rgba(255,255,255,.04);border-radius:10px;padding:12px;
+  font-size:11px;line-height:1.7;color:var(--text);
+  border-left:2px solid var(--accent);font-family:'Syne Mono';
+  margin-top:10px;min-height:60px;
+}
+.m-ai-resp.typing::after{content:'▋';animation:blink .7s infinite}
+.m-qps{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.m-qp{
+  padding:9px 12px;border-radius:9px;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);cursor:pointer;font-size:10px;
+  display:flex;align-items:center;gap:7px;transition:all .2s;
+  font-family:'Syne Mono';color:var(--text2);
+}
+.m-qp:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:150px;left:50%;transform:translateX(-50%) translateY(8px);
+  background:rgba(10,10,26,0.92);border:1px solid var(--accent);
+  border-radius:12px;padding:9px 18px;
+  font-family:'Syne Mono';font-size:11px;color:var(--accent);
+  box-shadow:0 0 30px var(--glow);z-index:200;
+  opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;
+  white-space:nowrap;backdrop-filter:blur(12px);
+}
+@media(max-width:860px){#toast{bottom:160px}}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Placed item indicator */
+#item-flash{
+  position:fixed;top:58px;left:50%;transform:translateX(-50%) scale(.9);
+  z-index:15;background:rgba(0,245,160,.12);
+  border:1px solid rgba(0,245,160,.35);border-radius:10px;
+  padding:7px 16px;font-family:'Syne Mono';font-size:10px;color:var(--green);
+  backdrop-filter:blur(8px);opacity:0;pointer-events:none;
+  transition:opacity .3s,transform .3s;white-space:nowrap;
+}
+#item-flash.show{opacity:1;transform:translateX(-50%) scale(1)}
+
+/* Scan line effect */
+#scan-line{
+  position:fixed;left:0;right:0;height:2px;z-index:3;
+  background:linear-gradient(90deg,transparent,rgba(0,229,255,.4),transparent);
+  pointer-events:none;top:-2px;animation:scanLine 3s linear infinite;
+  display:none;
+}
+#scan-line.show{display:block}
+@keyframes scanLine{from{top:-2px}to{top:100%}}
+
+/* Panel toggle buttons */
+#panel-toggles{
+  position:fixed;top:50%;right:0;transform:translateY(-50%);
+  z-index:19;display:flex;flex-direction:column;gap:4px;
+  padding-right:0;
+}
+@media(max-width:860px){#panel-toggles{display:none}}
+.ptog{
+  width:28px;padding:10px 4px;
+  background:rgba(6,6,18,0.8);border:1px solid var(--border);
+  border-right:none;border-radius:8px 0 0 8px;
+  cursor:pointer;writing-mode:vertical-rl;
+  font-family:'Syne Mono';font-size:8px;color:var(--text2);
+  transition:all .2s;display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);
+}
+.ptog:hover{color:var(--accent);border-color:var(--accent)}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+</style>
 </head>
-
 <body>
-  <div id="app">
+<div id="app">
 
-    <!-- HEADER -->
-    <header id="header">
-      <div class="logo">
-        <div class="logo-icon">🏠</div>
-        <div>
-          <div class="logo-text">INTERIOR<span>.AI</span></div>
-          <div class="logo-sub">AR DESIGNER v3.0</div>
-        </div>
-      </div>
-      <div class="hstatus">
-        <div class="sdot"></div>
-        <span id="status-text">READY</span>
-        <span class="hstatus-extra" id="fps-counter">-- FPS</span>
-      </div>
-      <div class="hactions">
-        <button class="hbtn" onclick="saveLayout()">💾 Save</button>
-        <button class="hbtn" onclick="shareLayout()">🔗 Share</button>
-        <button class="hbtn pri" onclick="exportRender()">📷 Export</button>
-      </div>
-    </header>
+<!-- FULL-SCREEN CAMERA -->
+<video id="cam-bg" autoplay playsinline muted></video>
+<canvas id="three-canvas"></canvas>
+<div id="atmo"></div>
+<div id="light-overlay"></div>
+<div id="paint-overlay"></div>
+<div id="scan-line"></div>
 
-    <!-- LEFT PANEL -->
-    <aside id="left-panel">
-      <div class="psect">
-        <div class="slabel">Design Themes</div>
-        <div class="tgrid" id="theme-grid"></div>
-      </div>
-      <div class="psect">
-        <div class="slabel">Furniture Library</div>
-        <div class="flist" id="furniture-list"></div>
-      </div>
-      <div class="psect">
-        <div class="slabel">Wall Paint</div>
-        <div id="color-palette"></div>
-        <div class="rng-wrap">
-          <label>Opacity <span id="ov">60%</span></label>
-          <input type="range" min="10" max="100" value="60" oninput="updOp(this.value)">
-        </div>
-      </div>
-    </aside>
+<!-- HUD CORNERS -->
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+<div id="crosshair"></div>
+<div id="hud-tl">
+  <div id="h-mode">MODE: LIVE</div>
+  <div id="h-items">ITEMS: 0</div>
+  <div id="h-depth">DEPTH: --</div>
+</div>
+<div id="hud-tr">
+  <div id="h-theme">THEME: DEFAULT</div>
+  <div id="h-light">LIGHT: NATURAL</div>
+  <div id="h-fps">-- FPS</div>
+</div>
 
-    <!-- VIEWPORT -->
-    <main id="viewport">
-      <div class="hud-line hud-h" style="top:25%"></div>
-      <div class="hud-line hud-h" style="top:50%"></div>
-      <div class="hud-line hud-h" style="top:75%"></div>
-      <div class="hud-line hud-v" style="left:25%"></div>
-      <div class="hud-line hud-v" style="left:50%"></div>
-      <div class="hud-line hud-v" style="left:75%"></div>
-      <video id="cam" autoplay playsinline muted></video>
-      <canvas id="three-canvas"></canvas>
-      <div id="poverlay"></div>
-      <div id="loverlay"></div>
-      <div id="toverlay"></div>
-      <div class="corner tl"></div>
-      <div class="corner tr"></div>
-      <div class="corner bl"></div>
-      <div class="corner br"></div>
-      <div class="hud hud-tl">
-        <div id="hud-mode">MODE: LIVE</div>
-        <div id="hud-items">ITEMS: 0</div>
-        <div id="hud-scan">DEPTH: --</div>
-      </div>
-      <div class="hud hud-tr">
-        <div id="hud-theme">THEME: DEFAULT</div>
-        <div id="hud-light">LIGHT: NATURAL</div>
-        <div id="hud-color">PAINT: OFF</div>
-      </div>
-      <div class="hud hud-bl">INTERIOR.AI / AR</div>
-      <div class="hud hud-br" id="hud-fps">-- FPS</div>
-      <div id="xhair"></div>
-      <div id="tool-indicator"></div>
-      <div id="sel-indicator"></div>
-
-      <!-- FLOOR DETECTION INDICATOR -->
-      <div id="floor-indicator">
-        <div class="fi-ring">📐</div>
-        <div class="fi-text">DETECTING FLOOR...</div>
-      </div>
-      <div id="no-floor-warn">⚠️ Floor not detected yet<br><span style="font-size:10px;opacity:.7">Point camera at the floor & wait</span></div>
-
-      <!-- SCAN OVERLAY -->
-      <div id="scan">
-        <div class="sring"></div>
-        <div class="stxt" id="scan-text">INITIALIZING AR</div>
-        <div class="ssub">Point camera at your room</div>
-        <div class="spbar">
-          <div class="spfill" id="scan-bar"></div>
-        </div>
-        <button id="scambtn" onclick="startCamera()">🎥 Start Camera</button>
-        <div class="camhint">Allow camera access when prompted.<br>Works best in a well-lit room.</div>
-      </div>
-    </main>
-
-    <!-- RIGHT PANEL -->
-    <aside id="right-panel">
-      <div class="ai-wrap">
-        <div class="ai-hdr">
-          <div class="ai-badge">AI ✦</div>
-          <span style="font-size:12px;font-weight:700">Room Transformer</span>
-        </div>
-        <div class="ai-inp-w">
-          <textarea class="ai-inp" id="ai-prompt" placeholder="e.g. Make my room cyberpunk..."
-            onkeydown="handleKey(event)"></textarea>
-          <button class="ai-send" onclick="sendAI()">→</button>
-        </div>
-      </div>
-      <div class="psect">
-        <div class="slabel">Quick Transforms</div>
-        <div class="qp-list" id="qp-list"></div>
-      </div>
-      <div class="psect">
-        <div class="slabel">AI Design Brief</div>
-        <div class="ai-resp" id="ai-response">Apply a theme or describe your vision to get AI design suggestions...
-        </div>
-      </div>
-      <div class="sgrid">
-        <div class="scard">
-          <div class="sval" id="stat-items">0</div>
-          <div class="slbl">ITEMS PLACED</div>
-        </div>
-        <div class="scard">
-          <div class="sval" id="stat-theme">—</div>
-          <div class="slbl">ACTIVE THEME</div>
-        </div>
-      </div>
-      <div class="psect">
-        <div class="slabel">Lighting</div>
-        <div class="lbtns" id="lbtns"></div>
-      </div>
-      <div class="plist">
-        <div class="slabel">Placed Items</div>
-        <div id="placed-list"></div>
-      </div>
-    </aside>
-
-    <!-- BOTTOM BAR (desktop) -->
-    <div id="bottom-bar">
-      <div class="btool active" id="tool-place" onclick="setTool('place')">
-        <div class="bi">🪑</div>PLACE
-      </div>
-      <div class="btool" id="tool-move" onclick="setTool('move')">
-        <div class="bi">✋</div>MOVE
-      </div>
-      <div class="btool" id="tool-rotate" onclick="setTool('rotate')">
-        <div class="bi">🔄</div>ROTATE
-      </div>
-      <div class="btool" id="tool-scale" onclick="setTool('scale')">
-        <div class="bi">⬛</div>SCALE
-      </div>
-      <div class="btool" id="tool-delete" onclick="setTool('delete')">
-        <div class="bi">🗑️</div>DELETE
-      </div>
-      <div class="bsep"></div>
-      <div class="btool" onclick="toggleGrid()">
-        <div class="bi">⊞</div>GRID
-      </div>
-      <div class="btool" onclick="resetScene()">
-        <div class="bi">↩️</div>RESET
-      </div>
-      <div class="btool" onclick="toggleFullscreen()">
-        <div class="bi">⛶</div>FULL
-      </div>
-      <div class="bsep"></div>
-      <div class="btool" onclick="exportRender()">
-        <div class="bi">📸</div>SCREENSHOT
-      </div>
-    </div>
-
-    <!-- MOBILE BOTTOM -->
-    <div id="mobile-bottom">
-      <div class="mbtool active" id="m-place" onclick="mSetTool('place')">
-        <div class="mbi">🪑</div>Place
-      </div>
-      <div class="mbtool" id="m-rotate" onclick="mSetTool('rotate')">
-        <div class="mbi">🔄</div>Rotate
-      </div>
-      <div class="mbtool" id="m-delete" onclick="mSetTool('delete')">
-        <div class="mbi">🗑️</div>Delete
-      </div>
-      <div class="mbtool" onclick="toggleDrawer()">
-        <div class="mbi">⚙️</div>Design
-      </div>
-      <div class="mbtool" onclick="resetScene()">
-        <div class="mbi">↩️</div>Reset
-      </div>
-    </div>
-
-    <!-- MOBILE DRAWER -->
-    <div id="mobile-drawer">
-      <div class="drawer-handle"></div>
-      <div class="drawer-tabs">
-        <div class="dtab active" onclick="switchTab('themes')">🎨 Themes</div>
-        <div class="dtab" onclick="switchTab('furniture')">🪑 Furniture</div>
-        <div class="dtab" onclick="switchTab('paint')">🖌️ Paint</div>
-        <div class="dtab" onclick="switchTab('lighting')">💡 Lighting</div>
-        <div class="dtab" onclick="switchTab('ai')">✦ AI</div>
-      </div>
-      <div id="tab-themes" class="dtabcont active">
-        <div class="m-tgrid" id="m-theme-grid"></div>
-      </div>
-      <div id="tab-furniture" class="dtabcont">
-        <div class="m-flist" id="m-furniture-list"></div>
-      </div>
-      <div id="tab-paint" class="dtabcont">
-        <div id="m-color-palette"></div>
-        <div class="rng-wrap" style="margin-top:10px">
-          <label>Opacity <span id="m-ov">60%</span></label>
-          <input type="range" min="10" max="100" value="60" oninput="updOp(this.value,true)">
-        </div>
-      </div>
-      <div id="tab-lighting" class="dtabcont">
-        <div class="m-lbtns" id="m-lbtns"></div>
-      </div>
-      <div id="tab-ai" class="dtabcont">
-        <div style="position:relative">
-          <textarea class="m-ai-inp" id="m-ai-prompt" placeholder="e.g. Make my room cyberpunk..."
-            onkeydown="handleKeyM(event)"></textarea>
-          <button class="m-ai-send" onclick="sendAIM()">→</button>
-        </div>
-        <div class="m-qps" id="m-qp-list"></div>
-        <div class="m-ai-resp" id="m-ai-response">Describe your design vision...</div>
-      </div>
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="logo">
+    <div class="logo-mark">🏠</div>
+    <div>
+      <div class="logo-text">INTERIOR<span>.AI</span></div>
+      <div class="logo-sub">AR DESIGNER v4.0</div>
     </div>
   </div>
+  <div id="status-badge">
+    <div class="sdot"></div>
+    <span id="status-text">READY</span>
+    <span id="fps-text">-- FPS</span>
+  </div>
+  <div class="top-actions">
+    <button class="tbtn" onclick="saveLayout()">💾 SAVE</button>
+    <button class="tbtn" onclick="shareLayout()">🔗 SHARE</button>
+    <button class="tbtn pri" onclick="exportRender()">📷 EXPORT</button>
+  </div>
+</div>
 
-  <div id="toast"></div>
+<!-- LEFT PANEL -->
+<aside id="left-panel">
+  <div class="psect">
+    <div class="plabel">Design Themes</div>
+    <div class="t-grid" id="theme-grid"></div>
+  </div>
+  <div class="psect">
+    <div class="plabel">Furniture Library</div>
+    <div class="f-list" id="furniture-list"></div>
+  </div>
+  <div class="psect">
+    <div class="plabel">Wall Paint</div>
+    <div id="color-palette"></div>
+    <div style="margin-top:8px">
+      <label style="font-family:'Syne Mono';font-size:9px;color:var(--text2);display:flex;justify-content:space-between">Opacity <span id="ov">60%</span></label>
+      <input type="range" min="5" max="100" value="60" style="margin-top:5px" oninput="updOp(this.value)">
+    </div>
+  </div>
+</aside>
 
-  <script>
-    // ─── DATA ────────────────────────────────────────────────────────────────────
-    const THEMES = [
-      { id: 'cyberpunk', name: 'Cyberpunk', emoji: '🌆', colors: ['#ff00ff', '#00ffff', '#1a0033', '#ff3366'], wallColor: 'rgba(26,0,51,0.65)', light: 'neon', ai: "Cyberpunk 2077 vibes: neon purples & cyans dominate. Metallic surfaces, holographic accents, LED strip lighting under every surface. Recommend: floating shelves with LED underlighting, chrome finish furniture, dark matte walls with glowing cable management art." },
-      { id: 'scandi', name: 'Scandinavian', emoji: '❄️', colors: ['#f5f0e8', '#c8b89a', '#8a7a6a', '#d4e8d4'], wallColor: 'rgba(245,240,232,0.55)', light: 'natural', ai: "Nordic minimalism: warm whites & natural wood tones. Clean lines, functional beauty, hygge atmosphere. Suggest: birch wood coffee table, wool throw blankets, simple white pendant lights, potted succulents on window sill." },
-      { id: 'japandi', name: 'Japandi', emoji: '🏯', colors: ['#e8ddd0', '#9a8a7a', '#2c2c2c', '#8fad88'], wallColor: 'rgba(232,221,208,0.55)', light: 'warm', ai: "Japandi fusion: wabi-sabi meets Nordic calm. Muted earth tones, natural materials, negative space. Recommend: low-profile platform bed, shoji screen dividers, bonsai arrangements, tatami-inspired floor cushions." },
-      { id: 'industrial', name: 'Industrial', emoji: '⚙️', colors: ['#3a3a3a', '#8a7a6a', '#c87941', '#1a1a1a'], wallColor: 'rgba(20,20,20,0.65)', light: 'tungsten', ai: "Urban industrial loft: exposed brick texture, raw concrete, salvaged metal. Edison bulb pendant clusters, iron pipe shelving, reclaimed wood accents. Dark moody palette with warm metal highlights." },
-      { id: 'tropical', name: 'Tropical', emoji: '🌴', colors: ['#2d6e4f', '#f9c846', '#e8745a', '#a8d8a8'], wallColor: 'rgba(45,110,79,0.35)', light: 'golden', ai: "Biophilic paradise: lush greens, rattan furniture, natural textures. Monstera leaf prints, bamboo blinds, terracotta pots with tropical plants. Warm golden hour lighting amplifies the organic atmosphere." },
-      { id: 'artdeco', name: 'Art Déco', emoji: '✦', colors: ['#1a1a2e', '#c9a84c', '#e8d5b0', '#2d1b69'], wallColor: 'rgba(26,26,46,0.65)', light: 'dramatic', ai: "1920s glamour reimagined: gold geometry, velvet textures, dramatic contrasts. Chevron parquet floors, mirrored surfaces, emerald green velvet sofas, brass fixtures everywhere. Bold geometric wallpaper as accent wall." },
-    ];
-    const FURNITURE = [
-      { id: 'sofa', name: 'Sofa', emoji: '🛋️', w: 2.4, h: 0.85, d: 1.0, col: 0x7a6a5a },
-      { id: 'table', name: 'Coffee Table', emoji: '🪵', w: 1.2, h: 0.45, d: 0.7, col: 0xc8a878 },
-      { id: 'chair', name: 'Arm Chair', emoji: '🪑', w: 0.85, h: 1.0, d: 0.85, col: 0x6a7a5a },
-      { id: 'lamp', name: 'Floor Lamp', emoji: '💡', w: 0.35, h: 1.8, d: 0.35, col: 0xd4b06a },
-      { id: 'shelf', name: 'Bookshelf', emoji: '📚', w: 0.9, h: 1.9, d: 0.35, col: 0x5a4535 },
-      { id: 'plant', name: 'Plant', emoji: '🌿', w: 0.5, h: 0.9, d: 0.5, col: 0x3d7a4a },
-      { id: 'tv', name: 'TV Stand', emoji: '📺', w: 1.8, h: 0.5, d: 0.4, col: 0x222222 },
-      { id: 'rug', name: 'Area Rug', emoji: '🟫', w: 2.2, h: 0.03, d: 1.6, col: 0xc47a3a },
-      { id: 'bed', name: 'King Bed', emoji: '🛏️', w: 2.0, h: 0.65, d: 2.1, col: 0x4a6a8a },
-      { id: 'dresser', name: 'Dresser', emoji: '🗄️', w: 1.1, h: 1.2, d: 0.5, col: 0x6a5535 },
-    ];
-    const PALETTE = [
-      ['#f5f5f5', '#e8ddd0', '#d4c4b0', '#c8b89a', '#f0e8d8'],
-      ['#a8c8d8', '#7ab4c8', '#4a9ab8', '#2d6e8a', '#1a4a5a'],
-      ['#b8d8a8', '#8ac47a', '#5ab04a', '#3a8a2a', '#1a5a10'],
-      ['#f4c8a8', '#e8a07a', '#d4784a', '#c05028', '#8a2808'],
-      ['#c8a8d8', '#b07ac8', '#984ab8', '#7a1a9a', '#4a0060'],
-      ['#2a2a2a', '#4a4a4a', '#6a6a6a', '#8a8a8a', '#aaaaaa'],
-      ['#ff6b6b', '#ff9f43', '#ffd93d', '#6bcb77', '#4d96ff'],
-    ];
-    const LIGHTING = [
-      { id: 'natural', name: 'Natural', emoji: '☀️', css: '', filter: '' },
-      { id: 'warm', name: 'Warm', emoji: '🕯️', css: 'rgba(255,180,80,.18)', filter: 'sepia(18%) saturate(110%)' },
-      { id: 'cool', name: 'Cool', emoji: '🌙', css: 'rgba(100,140,255,.13)', filter: 'hue-rotate(10deg) brightness(.92)' },
-      { id: 'golden', name: 'Golden Hr', emoji: '🌅', css: 'rgba(255,160,40,.26)', filter: 'saturate(130%) contrast(105%)' },
-      { id: 'neon', name: 'Neon', emoji: '💜', css: 'rgba(120,0,200,.22)', filter: 'saturate(150%) hue-rotate(-10deg)' },
-      { id: 'night', name: 'Night', emoji: '🌃', css: 'rgba(0,0,80,.5)', filter: 'brightness(.52) saturate(80%)' },
-      { id: 'dramatic', name: 'Dramatic', emoji: '🎭', css: 'rgba(0,0,0,.32)', filter: 'contrast(128%) brightness(.82)' },
-      { id: 'tungsten', name: 'Tungsten', emoji: '💡', css: 'rgba(255,140,40,.18)', filter: 'sepia(28%) saturate(92%)' },
-    ];
-    const QPS = [
-      { text: 'Make my room cyberpunk', icon: '🌆' },
-      { text: 'Convert to Scandinavian design', icon: '❄️' },
-      { text: 'Apply industrial loft aesthetic', icon: '⚙️' },
-      { text: 'Add tropical paradise vibes', icon: '🌴' },
-      { text: 'Transform to art déco elegance', icon: '✦' },
-      { text: 'Suggest furniture arrangement', icon: '🪑' },
-    ];
+<!-- RIGHT PANEL -->
+<aside id="right-panel">
+  <div class="psect">
+    <div class="ai-header">
+      <div class="ai-chip">AI ✦</div>
+      <span style="font-size:13px;font-weight:700">Room Transformer</span>
+    </div>
+    <div style="position:relative">
+      <textarea class="ai-input" id="ai-prompt" placeholder="e.g. Make it cyberpunk, add plants..." onkeydown="handleKey(event)"></textarea>
+      <button class="ai-send-btn" onclick="sendAI()">→</button>
+    </div>
+  </div>
+  <div class="psect">
+    <div class="plabel">Quick Transforms</div>
+    <div class="qp-list" id="qp-list"></div>
+  </div>
+  <div class="psect">
+    <div class="plabel">AI Design Brief</div>
+    <div class="ai-response" id="ai-response">Apply a theme or describe your vision to receive an AI design brief...</div>
+  </div>
+  <div class="s-grid">
+    <div class="s-card"><div class="s-val" id="stat-items">0</div><div class="s-lbl">PLACED</div></div>
+    <div class="s-card"><div class="s-val" id="stat-theme">—</div><div class="s-lbl">THEME</div></div>
+  </div>
+  <div class="psect">
+    <div class="plabel">Lighting</div>
+    <div class="l-grid" id="lbtns"></div>
+  </div>
+  <div class="psect" style="padding-bottom:14px">
+    <div class="plabel">Placed Items</div>
+    <div id="placed-list"><div style="color:var(--text2);font-size:10px;font-family:'Syne Mono'">No items placed yet</div></div>
+  </div>
+</aside>
 
-    // ─── STATE ────────────────────────────────────────────────────────────────────
-    const S = { camActive: false, floorDetected: false, tool: 'place', selFurniture: null, items: [], theme: null, paint: null, paintOp: 60, lighting: 'natural', grid: false, idcnt: 0, thinking: false };
+<!-- FLOOR DETECTION -->
+<div id="floor-ring">
+  <div class="fr-circle" id="fr-circle">📐</div>
+  <div class="fr-label" id="fr-label">DETECTING FLOOR...</div>
+</div>
+<div id="no-floor">⚠️ Point camera at floor<br><span style="font-size:9px;opacity:.6">Scan the floor surface to place items</span></div>
+<div id="place-hint">🪑 Floor detected — tap to place</div>
+<div id="item-flash"></div>
 
-    // ─── THREE.JS ─────────────────────────────────────────────────────────────────
-    let scene, cam3, renderer, raycaster, mouse3;
-    let objs = {};
-    let cursorMesh = null;
-    let drawerOpen = false;
-    let lastFT = 0, fpsCnt = 0;
+<!-- BOTTOM TOOLS -->
+<div id="bottom-tools">
+  <div id="action-row">
+    <div class="action-btn" onclick="toggleGrid()">⊞ GRID</div>
+    <div class="action-btn" onclick="togglePanels()">◧ PANELS</div>
+    <div class="action-btn" onclick="resetScene()">↩ RESET</div>
+    <div class="action-btn" onclick="exportRender()">📸</div>
+  </div>
+  <div id="tool-row">
+    <div class="tool-btn active" id="tool-place" onclick="setTool('place')"><span class="ti">🪑</span>PLACE</div>
+    <div class="tool-btn" id="tool-move" onclick="setTool('move')"><span class="ti">✋</span>MOVE</div>
+    <div class="tool-btn" id="tool-rotate" onclick="setTool('rotate')"><span class="ti">🔄</span>ROTATE</div>
+    <div class="tool-btn" id="tool-scale" onclick="setTool('scale')"><span class="ti">⬛</span>SCALE</div>
+    <div class="tool-btn danger" id="tool-delete" onclick="setTool('delete')"><span class="ti">🗑️</span>DELETE</div>
+    <div class="tool-btn" id="tool-design" onclick="toggleDrawer()" style="display:none"><span class="ti">✦</span>DESIGN</div>
+  </div>
+</div>
 
-    // ─── DEVICE ORIENTATION FOR AR ─────────────────────────────────────────────
-    let deviceOrientationEnabled = false;
-    let orientAlpha = 0, orientBeta = 0, orientGamma = 0;
-    let initialAlpha = null;
-    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+<!-- SCAN SCREEN -->
+<div id="scan-screen">
+  <div class="scan-ring-outer">
+    <div class="scan-ring-inner">
+      <div class="scan-core">🏠</div>
+    </div>
+  </div>
+  <div class="scan-title">INTERIOR.AI</div>
+  <div class="scan-sub">AR ROOM DESIGNER v4.0</div>
+  <div class="scan-progress-wrap">
+    <div class="scan-progress" id="scan-bar"></div>
+  </div>
+  <div class="scan-status" id="scan-status">AWAITING CAMERA</div>
+  <button class="scan-btn" id="scan-btn" onclick="startCamera()">🎥 START AR SESSION</button>
+  <div class="scan-hint">Grant camera access when prompted<br>Works best in a well-lit room on hard floor</div>
+</div>
 
-    // ─── REAL 3D FURNITURE MODELS ──────────────────────────────────────────────
+<!-- MOBILE PANEL -->
+<div id="mobile-panel">
+  <div class="drawer-grip"></div>
+  <div class="drawer-tabs">
+    <div class="dtab active" onclick="switchTab('themes')">🎨 Themes</div>
+    <div class="dtab" onclick="switchTab('furniture')">🪑 Items</div>
+    <div class="dtab" onclick="switchTab('paint')">🖌️ Paint</div>
+    <div class="dtab" onclick="switchTab('lighting')">💡 Light</div>
+    <div class="dtab" onclick="switchTab('ai')">✦ AI</div>
+  </div>
+  <div id="tab-themes" class="dtabcont active">
+    <div class="m-tgrid" id="m-theme-grid"></div>
+  </div>
+  <div id="tab-furniture" class="dtabcont">
+    <div class="m-fgrid" id="m-furniture-list"></div>
+  </div>
+  <div id="tab-paint" class="dtabcont">
+    <div id="m-color-palette"></div>
+    <div style="margin-top:12px">
+      <label style="font-family:'Syne Mono';font-size:9px;color:var(--text2);display:flex;justify-content:space-between">Opacity <span id="m-ov">60%</span></label>
+      <input type="range" min="5" max="100" value="60" style="margin-top:6px" oninput="updOp(this.value,true)">
+    </div>
+  </div>
+  <div id="tab-lighting" class="dtabcont">
+    <div class="m-lgrid" id="m-lbtns"></div>
+  </div>
+  <div id="tab-ai" class="dtabcont">
+    <div style="position:relative">
+      <textarea class="m-ai-inp" id="m-ai-prompt" placeholder="Describe your room vision..." onkeydown="handleKeyM(event)"></textarea>
+      <button class="m-ai-send" onclick="sendAIM()">→</button>
+    </div>
+    <div class="m-qps" id="m-qp-list"></div>
+    <div class="m-ai-resp" id="m-ai-response">Describe your design vision...</div>
+  </div>
+</div>
 
-    function makeSofa(def, color, opacity = 1) {
-      const g = new THREE.Group();
-      const mat = c => new THREE.MeshLambertMaterial({ color: c, transparent: opacity < 1, opacity });
-      const base = new THREE.Mesh(new THREE.BoxGeometry(def.w, 0.25, def.d), mat(color));
-      base.position.y = 0.125; g.add(base);
-      const seat = new THREE.Mesh(new THREE.BoxGeometry(def.w, 0.18, def.d * 0.65), mat(color));
-      seat.position.set(0, 0.29, def.d * 0.1); g.add(seat);
-      const back = new THREE.Mesh(new THREE.BoxGeometry(def.w, 0.55, 0.15), mat(color));
-      back.position.set(0, 0.49, -def.d * 0.43); g.add(back);
-      const al = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.4, def.d * 0.8), mat(color));
-      al.position.set(-def.w / 2 + 0.075, 0.32, 0); g.add(al);
-      const ar = al.clone(); ar.position.x = def.w / 2 - 0.075; g.add(ar);
-      [base, seat, back, al, ar].forEach(m => { m.castShadow = true; m.receiveShadow = true });
-      return g;
+<div id="toast"></div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const THEMES = [
+  { id:'cyberpunk', name:'Cyberpunk', emoji:'🌆', colors:['#ff00ff','#00ffff','#1a0033','#ff3366'], wallColor:'#1a0033', wallAlpha:.55, light:'neon', ai:"Cyberpunk 2077 vibes: neon purples & cyans dominate. Metallic surfaces, holographic accents, LED strip lighting under every surface. Place a Floor Lamp for that neon underglow, add a TV Stand as your holographic display hub, and layer an Area Rug with geometric patterns. Dark matte walls with glowing cable management art complete the look." },
+  { id:'scandi', name:'Scandi', emoji:'❄️', colors:['#f5f0e8','#c8b89a','#8a7a6a','#d4e8d4'], wallColor:'#f5f0e8', wallAlpha:.45, light:'natural', ai:"Nordic minimalism at its finest: warm whites, natural birch wood, and soft textile layering. A low Sofa with wool throws, birch Coffee Table, and a single sculptural Floor Lamp create the core. Potted Plants on the window sill, a woven Area Rug, and white pendant lights complete the hygge atmosphere." },
+  { id:'japandi', name:'Japandi', emoji:'🏯', colors:['#e8ddd0','#9a8a7a','#2c2c2c','#8fad88'], wallColor:'#e8ddd0', wallAlpha:.45, light:'warm', ai:"Japandi wabi-sabi fusion: muted earthy tones meet Nordic calm. Low-profile platform Bed with linen bedding, shoji-inspired Bookshelf, a bonsai Plant, and floor-level Coffee Table create intentional negative space. Warm low lighting, tatami-inspired Area Rug, and a simple Floor Lamp complete the serenity." },
+  { id:'industrial', name:'Industrial', emoji:'⚙️', colors:['#3a3a3a','#8a7a6a','#c87941','#1a1a1a'], wallColor:'#1a1a1a', wallAlpha:.6, light:'tungsten', ai:"Raw industrial loft aesthetic: exposed concrete walls, salvaged iron, dark moody palette. Edison bulb Floor Lamp, steel-frame Bookshelf, reclaimed wood Coffee Table. A worn leather Sofa anchors the space with an Area Rug in rust tones. Heavy Dresser for storage with a TV Stand mounted on raw brick." },
+  { id:'tropical', name:'Tropical', emoji:'🌴', colors:['#2d6e4f','#f9c846','#e8745a','#a8d8a8'], wallColor:'#2d6e4f', wallAlpha:.35, light:'golden', ai:"Biophilic paradise: lush greens, rattan, natural textures everywhere. Cluster several Plants in terracotta pots, a bamboo-style Bookshelf, wicker Arm Chair with plush cushions. A woven Area Rug grounds the space while warm golden lighting creates that perpetual-sunset feel." },
+  { id:'artdeco', name:'Art Déco', emoji:'✦', colors:['#1a1a2e','#c9a84c','#e8d5b0','#2d1b69'], wallColor:'#1a1a2e', wallAlpha:.65, light:'dramatic', ai:"1920s glamour fully reimagined: gold geometry, velvet textures, dramatic contrasts. An emerald velvet Sofa with a brass-finished Coffee Table create the centerpiece. Geometric gold-accent Floor Lamp, mirrored Dresser, and a bold chevron Area Rug. A TV Stand in ebony finish with gold hardware completes the opulence." },
+];
+
+const FURNITURE = [
+  { id:'sofa', name:'Sofa', emoji:'🛋️', w:2.4, h:.85, d:1.0, col:0x7a6a5a },
+  { id:'table', name:'Coffee Table', emoji:'🪵', w:1.2, h:.45, d:.7, col:0xc8a878 },
+  { id:'chair', name:'Arm Chair', emoji:'🪑', w:.85, h:1.0, d:.85, col:0x6a7a5a },
+  { id:'lamp', name:'Floor Lamp', emoji:'💡', w:.35, h:1.8, d:.35, col:0xd4b06a },
+  { id:'shelf', name:'Bookshelf', emoji:'📚', w:.9, h:1.9, d:.35, col:0x5a4535 },
+  { id:'plant', name:'Plant', emoji:'🌿', w:.5, h:.9, d:.5, col:0x3d7a4a },
+  { id:'tv', name:'TV Stand', emoji:'📺', w:1.8, h:.5, d:.4, col:0x222222 },
+  { id:'rug', name:'Area Rug', emoji:'🟫', w:2.2, h:.03, d:1.6, col:0xc47a3a },
+  { id:'bed', name:'King Bed', emoji:'🛏️', w:2.0, h:.65, d:2.1, col:0x4a6a8a },
+  { id:'dresser', name:'Dresser', emoji:'🗄️', w:1.1, h:1.2, d:.5, col:0x6a5535 },
+];
+
+const PALETTE = [
+  ['#f5f5f5','#e8ddd0','#d4c4b0','#c8b89a','#f0e8d8'],
+  ['#a8c8d8','#7ab4c8','#4a9ab8','#2d6e8a','#1a4a5a'],
+  ['#b8d8a8','#8ac47a','#5ab04a','#3a8a2a','#1a5a10'],
+  ['#f4c8a8','#e8a07a','#d4784a','#c05028','#8a2808'],
+  ['#c8a8d8','#b07ac8','#984ab8','#7a1a9a','#4a0060'],
+  ['#2a2a2a','#4a4a4a','#6a6a6a','#8a8a8a','#aaaaaa'],
+  ['#ff6b6b','#ff9f43','#ffd93d','#6bcb77','#4d96ff'],
+];
+
+const LIGHTING = [
+  { id:'natural', name:'Natural', emoji:'☀️', css:'', filter:'' },
+  { id:'warm', name:'Warm', emoji:'🕯️', css:'rgba(255,170,60,.14)', filter:'sepia(12%) saturate(110%)' },
+  { id:'cool', name:'Cool', emoji:'🌙', css:'rgba(80,120,255,.1)', filter:'hue-rotate(8deg) brightness(.93)' },
+  { id:'golden', name:'Golden Hr', emoji:'🌅', css:'rgba(255,150,30,.2)', filter:'saturate(125%) contrast(108%)' },
+  { id:'neon', name:'Neon', emoji:'💜', css:'rgba(100,0,180,.18)', filter:'saturate(140%) hue-rotate(-8deg)' },
+  { id:'night', name:'Night', emoji:'🌃', css:'rgba(0,0,70,.5)', filter:'brightness(.5) saturate(80%)' },
+  { id:'dramatic', name:'Dramatic', emoji:'🎭', css:'rgba(0,0,0,.28)', filter:'contrast(125%) brightness(.85)' },
+  { id:'tungsten', name:'Tungsten', emoji:'💡', css:'rgba(255,130,30,.14)', filter:'sepia(22%) saturate(95%)' },
+];
+
+const QPS = [
+  { text:'Make my room cyberpunk', icon:'🌆' },
+  { text:'Convert to Scandinavian design', icon:'❄️' },
+  { text:'Apply industrial loft aesthetic', icon:'⚙️' },
+  { text:'Add tropical paradise vibes', icon:'🌴' },
+  { text:'Transform to art déco elegance', icon:'✦' },
+  { text:'Suggest furniture arrangement', icon:'🪑' },
+];
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+const S = {
+  camActive:false, floorDetected:false, tool:'place',
+  selFurniture:null, items:[], theme:null, paint:null,
+  paintOp:60, lighting:'natural', grid:false, idcnt:0,
+  thinking:false, panelsVisible:true, drawerOpen:false,
+  isMobile: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent),
+};
+
+// ── THREE.JS ─────────────────────────────────────────────────────────────────
+let scene, cam3, renderer, raycaster, mouse3;
+let objs = {};
+let cursorMesh = null;
+let lastFT = 0, fps = 0;
+
+// ── DEVICE ORIENTATION ───────────────────────────────────────────────────────
+let orientEnabled = false;
+let initAlpha = null;
+let oA = 0, oB = 90, oG = 0;
+// Smooth orientation
+let sA = 0, sB = 90, sG = 0;
+
+// ── 3D FURNITURE BUILDERS ────────────────────────────────────────────────────
+function mkMat(c, op=1) {
+  return new THREE.MeshLambertMaterial({color:c, transparent:op<1, opacity:op});
+}
+
+function makeSofa(d,c,op=1){
+  const g=new THREE.Group();
+  const base=new THREE.Mesh(new THREE.BoxGeometry(d.w,.25,d.d),mkMat(c,op));base.position.y=.125;g.add(base);
+  const seat=new THREE.Mesh(new THREE.BoxGeometry(d.w,.18,d.d*.65),mkMat(c,op));seat.position.set(0,.29,d.d*.1);g.add(seat);
+  const back=new THREE.Mesh(new THREE.BoxGeometry(d.w,.55,.15),mkMat(c,op));back.position.set(0,.49,-d.d*.43);g.add(back);
+  const al=new THREE.Mesh(new THREE.BoxGeometry(.15,.4,d.d*.8),mkMat(c,op));al.position.set(-d.w/2+.075,.32,0);g.add(al);
+  const ar=al.clone();ar.position.x=d.w/2-.075;g.add(ar);
+  g.children.forEach(m=>{m.castShadow=true;m.receiveShadow=true});return g;
+}
+function makeCoffeeTable(d,c,op=1){
+  const g=new THREE.Group();
+  const top=new THREE.Mesh(new THREE.BoxGeometry(d.w,.06,d.d),mkMat(c,op));top.position.y=d.h-.03;top.castShadow=true;g.add(top);
+  const lh=d.h-.06;const lg=new THREE.CylinderGeometry(.03,.03,lh,8);const lm=mkMat(0x2a2010,op);
+  [[d.w/2-.1,d.d/2-.1],[-(d.w/2-.1),d.d/2-.1],[d.w/2-.1,-(d.d/2-.1)],[-(d.w/2-.1),-(d.d/2-.1)]].forEach(([x,z])=>{
+    const l=new THREE.Mesh(lg,lm);l.position.set(x,lh/2,z);l.castShadow=true;g.add(l);
+  });return g;
+}
+function makeChair(d,c,op=1){
+  const g=new THREE.Group();const lm=mkMat(0x1a1510,op);
+  const seat=new THREE.Mesh(new THREE.BoxGeometry(d.w,.12,d.d*.7),mkMat(c,op));seat.position.y=.45;seat.castShadow=true;g.add(seat);
+  const back=new THREE.Mesh(new THREE.BoxGeometry(d.w,.5,.1),mkMat(c,op));back.position.set(0,.72,-d.d*.35);back.castShadow=true;g.add(back);
+  const al=new THREE.Mesh(new THREE.BoxGeometry(.08,.15,d.d*.6),mkMat(c,op));al.position.set(-d.w/2+.04,.58,0);g.add(al);
+  const ar=al.clone();ar.position.x=d.w/2-.04;g.add(ar);
+  [[d.w/2-.1,d.d*.28],[-(d.w/2-.1),d.d*.28],[d.w/2-.1,-d.d*.28],[-(d.w/2-.1),-d.d*.28]].forEach(([x,z])=>{
+    const l=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.44,8),lm);l.position.set(x,.22,z);l.castShadow=true;g.add(l);
+  });return g;
+}
+function makeLamp(d,c,op=1){
+  const g=new THREE.Group();
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(.15,.18,.06,16),mkMat(0x1a1a1a,op));base.position.y=.03;g.add(base);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,d.h-.35,8),mkMat(0x333333,op));pole.position.y=(d.h-.35)/2+.06;g.add(pole);
+  const shade=new THREE.Mesh(new THREE.ConeGeometry(.25,.35,16,1,true),mkMat(c,op));shade.position.y=d.h-.12;g.add(shade);
+  const bulb=new THREE.Mesh(new THREE.SphereGeometry(.07,12,12),new THREE.MeshLambertMaterial({color:0xffffcc,emissive:0xffee88,emissiveIntensity:.8,transparent:op<1,opacity:op}));
+  bulb.position.y=d.h-.22;g.add(bulb);return g;
+}
+function makeShelf(d,c,op=1){
+  const g=new THREE.Group();
+  const bk=new THREE.Mesh(new THREE.BoxGeometry(d.w,d.h,.04),mkMat(c,op));bk.position.y=d.h/2;g.add(bk);
+  const sp=new THREE.BoxGeometry(.04,d.h,d.d);
+  const sl=new THREE.Mesh(sp,mkMat(c,op));sl.position.set(-d.w/2+.02,d.h/2,0);sl.castShadow=true;g.add(sl);
+  const sr=sl.clone();sr.position.x=d.w/2-.02;g.add(sr);
+  for(let i=0;i<=4;i++){
+    const s=new THREE.Mesh(new THREE.BoxGeometry(d.w-.04,.04,d.d),mkMat(c,op));
+    s.position.set(0,i*(d.h/4),0);s.castShadow=true;g.add(s);
+  }return g;
+}
+function makePlant(d,c,op=1){
+  const g=new THREE.Group();
+  const pot=new THREE.Mesh(new THREE.CylinderGeometry(d.w*.4,d.w*.3,d.h*.35,12),mkMat(0xb05a30,op));pot.position.y=d.h*.175;pot.castShadow=true;g.add(pot);
+  const soil=new THREE.Mesh(new THREE.CylinderGeometry(d.w*.38,d.w*.38,.04,12),mkMat(0x2a1a0a,op));soil.position.y=d.h*.34;g.add(soil);
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.03,.04,d.h*.4,8),mkMat(0x5a3a1a,op));trunk.position.y=d.h*.55;trunk.castShadow=true;g.add(trunk);
+  for(let i=0;i<7;i++){
+    const a=i*(Math.PI*2/7),r=d.w*.35+Math.random()*.1;
+    const l=new THREE.Mesh(new THREE.SphereGeometry(d.w*(.35+Math.random()*.15),8,6),mkMat(c,op));
+    l.scale.set(1.4,.6,.8);l.position.set(Math.cos(a)*r,d.h*.75+Math.random()*.15,Math.sin(a)*r);l.castShadow=true;g.add(l);
+  }
+  const top=new THREE.Mesh(new THREE.SphereGeometry(d.w*.35,10,8),mkMat(c,op));top.position.y=d.h*.85;top.castShadow=true;g.add(top);return g;
+}
+function makeTVStand(d,c,op=1){
+  const g=new THREE.Group();
+  const cab=new THREE.Mesh(new THREE.BoxGeometry(d.w,d.h*.85,d.d),mkMat(c,op));cab.position.y=d.h*.425;cab.castShadow=true;g.add(cab);
+  const tp=new THREE.Mesh(new THREE.BoxGeometry(d.w,.03,d.d+.04),mkMat(0x1a1510,op));tp.position.y=d.h*.87;g.add(tp);
+  const tv=new THREE.Mesh(new THREE.BoxGeometry(d.w*.9,d.w*.55,.06),mkMat(0x0a0a0a,op));tv.position.set(0,d.h+d.w*.28,0);tv.castShadow=true;g.add(tv);
+  const sc=new THREE.Mesh(new THREE.BoxGeometry(d.w*.86,d.w*.5,.01),new THREE.MeshLambertMaterial({color:0x001133,emissive:0x002266,emissiveIntensity:.5,transparent:op<1,opacity:op}));
+  sc.position.set(0,d.h+d.w*.28,.04);g.add(sc);return g;
+}
+function makeRug(d,c,op=1){
+  const g=new THREE.Group();
+  const border=new THREE.Mesh(new THREE.BoxGeometry(d.w+.06,.02,d.d+.06),mkMat(0x8a5a2a,op));border.position.y=.01;g.add(border);
+  const rug=new THREE.Mesh(new THREE.BoxGeometry(d.w,.024,d.d),mkMat(c,op));rug.position.y=.012;g.add(rug);
+  return g;
+}
+function makeBed(d,c,op=1){
+  const g=new THREE.Group();
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(d.w,.2,d.d),mkMat(0x4a3525,op));frame.position.y=.1;frame.castShadow=true;g.add(frame);
+  const mat=new THREE.Mesh(new THREE.BoxGeometry(d.w-.06,.22,d.d-.1),mkMat(0xf0ece8,op));mat.position.set(0,.31,0);g.add(mat);
+  const p1=new THREE.Mesh(new THREE.BoxGeometry(d.w*.42,.1,d.d*.2),mkMat(0xffffff,op));p1.position.set(-d.w*.2,.47,-d.d*.35);g.add(p1);
+  const p2=p1.clone();p2.position.set(d.w*.2,.47,-d.d*.35);g.add(p2);
+  const duv=new THREE.Mesh(new THREE.BoxGeometry(d.w-.06,.08,d.d*.65),mkMat(c,op));duv.position.set(0,.46,d.d*.12);g.add(duv);
+  const hb=new THREE.Mesh(new THREE.BoxGeometry(d.w,.7,.12),mkMat(0x3a2a18,op));hb.position.set(0,.55,-d.d/2+.06);g.add(hb);
+  return g;
+}
+function makeDresser(d,c,op=1){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(d.w,d.h,d.d),mkMat(c,op));body.position.y=d.h/2;body.castShadow=true;g.add(body);
+  const tp=new THREE.Mesh(new THREE.BoxGeometry(d.w+.04,.04,d.d+.04),mkMat(0x1a1510,op));tp.position.y=d.h+.02;g.add(tp);
+  for(let i=0;i<4;i++){
+    const dh=(d.h-.06)/4;
+    const dr=new THREE.Mesh(new THREE.BoxGeometry(d.w-.08,dh-.05,.04),mkMat(0x7a6040,op));
+    dr.position.set(0,.03+i*dh+dh/2,-d.d/2-.01);g.add(dr);
+    const kn=new THREE.Mesh(new THREE.SphereGeometry(.025,8,8),mkMat(0xc8a060,op));
+    kn.position.set(0,.03+i*dh+dh/2,-d.d/2-.04);g.add(kn);
+  }return g;
+}
+
+const BUILDERS = { sofa:makeSofa, table:makeCoffeeTable, chair:makeChair, lamp:makeLamp, shelf:makeShelf, plant:makePlant, tv:makeTVStand, rug:makeRug, bed:makeBed, dresser:makeDresser };
+
+function buildMesh(def, colorOverride, opacity=1) {
+  const color = colorOverride !== undefined ? colorOverride : def.col;
+  const builder = BUILDERS[def.id];
+  if(builder) return builder(def, color, opacity);
+  const m=new THREE.Mesh(new THREE.BoxGeometry(def.w,def.h,def.d),mkMat(color,opacity));
+  m.castShadow=true;return m;
+}
+
+// ── THREE INIT ───────────────────────────────────────────────────────────────
+function initThree() {
+  const canvas = document.getElementById('three-canvas');
+  renderer = new THREE.WebGLRenderer({ canvas, alpha:true, antialias:true, preserveDrawingBuffer:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setClearColor(0x000000, 0); // transparent
+
+  scene = new THREE.Scene();
+
+  const w = window.innerWidth, h = window.innerHeight;
+  // Use wide FOV matching most phone cameras (~65°)
+  cam3 = new THREE.PerspectiveCamera(S.isMobile ? 65 : 58, w/h, 0.05, 100);
+
+  // Camera starts at eye height, looking forward
+  cam3.position.set(0, 1.55, 0);
+  cam3.lookAt(0, 1.55, -3);
+
+  renderer.setSize(w, h);
+
+  // Lights
+  const amb = new THREE.AmbientLight(0xffffff, 0.65); scene.add(amb);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+  dir.position.set(3, 8, 5); dir.castShadow = true;
+  dir.shadow.mapSize.width = 2048; dir.shadow.mapSize.height = 2048;
+  scene.add(dir); objs.dir = dir;
+
+  // Large invisible floor plane for raycasting
+  const floorGeo = new THREE.PlaneGeometry(50, 50);
+  const floorMat = new THREE.MeshBasicMaterial({ visible:false, side:THREE.DoubleSide });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI/2;
+  floor.position.y = 0; // Floor at y=0 (world origin)
+  scene.add(floor); objs.floor = floor;
+
+  // Grid
+  const grid = new THREE.GridHelper(30, 60, 0x4444aa, 0x2a2a55);
+  grid.visible = false; scene.add(grid); objs.grid = grid;
+
+  raycaster = new THREE.Raycaster();
+  mouse3 = new THREE.Vector2();
+
+  canvas.addEventListener('click', onCanvasClick);
+  canvas.addEventListener('mousemove', onCanvasMove);
+  canvas.addEventListener('touchstart', onTouchStart, { passive:true });
+
+  window.addEventListener('resize', onResize);
+  renderLoop();
+}
+
+// ── CAMERA ORIENTATION ───────────────────────────────────────────────────────
+function enableOrientation() {
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission()
+      .then(s => { if(s==='granted') listenOrientation(); })
+      .catch(()=>{});
+  } else {
+    listenOrientation();
+  }
+}
+
+function listenOrientation() {
+  orientEnabled = true;
+  window.addEventListener('deviceorientation', e => {
+    if(e.alpha == null) return;
+    if(initAlpha === null) initAlpha = e.alpha;
+    oA = e.alpha; oB = e.beta; oG = e.gamma;
+  }, true);
+}
+
+// Smooth camera with exponential filter - makes it feel like AR tracking
+function updateCameraOrientation() {
+  if (!orientEnabled || !S.camActive) return;
+  const k = 0.12; // smoothing factor
+  sA += (oA - sA) * k;
+  sB += (oB - sB) * k;
+  sG += (oG - sG) * k;
+
+  const dr = Math.PI/180;
+  const alpha = ((sA - (initAlpha||0)) % 360) * dr;
+  const beta  = sB * dr;
+  const gamma = sG * dr;
+
+  // phone upright: beta≈90. When camera points straight ahead, we want
+  // pitch=0 in scene. When phone tilted down (beta<90), camera looks down.
+  const euler = new THREE.Euler(
+    beta - Math.PI/2,  // pitch: subtract 90° so upright=0
+    -alpha,             // yaw from compass
+    -gamma,             // roll
+    'YXZ'
+  );
+  cam3.quaternion.setFromEuler(euler);
+}
+
+// ── RENDER LOOP ──────────────────────────────────────────────────────────────
+function renderLoop(t=0) {
+  requestAnimationFrame(renderLoop);
+  const dt = t - lastFT; lastFT = t;
+  if(dt > 0) fps = Math.round(0.9*fps + 0.1*(1000/dt));
+  document.getElementById('h-fps').textContent = fps + ' FPS';
+  document.getElementById('fps-text').textContent = fps + ' FPS';
+
+  if(S.isMobile) updateCameraOrientation();
+
+  // Gentle float animation for placed items
+  S.items.forEach(item => {
+    const m = objs['i'+item.id];
+    if(m) {
+      const off = Math.sin(t*0.0007 + item.foff) * 0.008;
+      m.position.y = item.baseY + off;
+    }
+  });
+
+  // Animate cursor
+  if(cursorMesh) {
+    cursorMesh.rotation.y += 0.02;
+    const pulse = 0.9 + Math.sin(t*0.003)*0.1;
+    cursorMesh.scale.setScalar(pulse);
+  }
+
+  renderer.render(scene, cam3);
+}
+
+function onResize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  cam3.aspect = w/h; cam3.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+
+// ── FLOOR RAYCASTING ─────────────────────────────────────────────────────────
+// Key fix: project ray from screen coords, intersect with Y=0 plane
+function getFloorPoint(nx, ny) {
+  mouse3.set(nx, ny);
+  raycaster.setFromCamera(mouse3, cam3);
+  const hits = raycaster.intersectObject(objs.floor);
+  if(hits.length > 0) return hits[0].point;
+
+  // Fallback: ray-plane intersection manually at y=0
+  const dir = raycaster.ray.direction.clone().normalize();
+  const org = raycaster.ray.origin.clone();
+  if(Math.abs(dir.y) < 0.001) return null;
+  const t = -org.y / dir.y;
+  if(t < 0 || t > 30) return null;
+  return new THREE.Vector3(org.x + dir.x*t, 0, org.z + dir.z*t);
+}
+
+function screenToNDC(clientX, clientY) {
+  return {
+    x: (clientX / window.innerWidth) * 2 - 1,
+    y: -((clientY / window.innerHeight) * 2 - 1)
+  };
+}
+
+function onCanvasMove(e) {
+  if(!S.camActive || !S.floorDetected) return;
+  if(S.tool !== 'place' || !S.selFurniture) {
+    if(cursorMesh) { scene.remove(cursorMesh); cursorMesh = null; }
+    return;
+  }
+  const {x,y} = screenToNDC(e.clientX, e.clientY);
+  const pt = getFloorPoint(x, y);
+  if(pt) {
+    if(!cursorMesh) {
+      cursorMesh = buildMesh(S.selFurniture, 0x6c63ff, 0.4);
+      scene.add(cursorMesh);
+    }
+    cursorMesh.position.set(pt.x, 0, pt.z);
+  }
+}
+
+function onCanvasClick(e) {
+  if(!S.camActive) return;
+  if(e.target.tagName === 'BUTTON') return;
+  if(!S.floorDetected) { showNoFloor(); return; }
+  const {x,y} = screenToNDC(e.clientX, e.clientY);
+  doPlacement(x, y);
+}
+
+function onTouchStart(e) {
+  if(!S.camActive) return;
+  if(!S.floorDetected) { showNoFloor(); return; }
+  const t = e.touches[0];
+  const {x,y} = screenToNDC(t.clientX, t.clientY);
+  doPlacement(x, y);
+}
+
+function doPlacement(nx, ny) {
+  mouse3.set(nx, ny);
+  raycaster.setFromCamera(mouse3, cam3);
+
+  if(S.tool === 'place' && S.selFurniture) {
+    const pt = getFloorPoint(nx, ny);
+    if(pt) placeItem(S.selFurniture, pt);
+
+  } else if(S.tool === 'delete') {
+    const meshes = S.items.map(i=>objs['i'+i.id]).filter(Boolean);
+    const hits = raycaster.intersectObjects(meshes, true);
+    if(hits.length > 0) {
+      let obj = hits[0].object;
+      // Walk up to find top-level group with itemId
+      while(obj.parent && !obj.userData.itemId && obj.parent !== scene) obj = obj.parent;
+      const id = obj.userData.itemId;
+      if(id) removeItem(id);
     }
 
-    function makeCoffeeTable(def, color, opacity = 1) {
-      const g = new THREE.Group();
-      const mat = c => new THREE.MeshLambertMaterial({ color: c, transparent: opacity < 1, opacity });
-      const top = new THREE.Mesh(new THREE.BoxGeometry(def.w, 0.06, def.d), mat(color));
-      top.position.y = def.h - 0.03; top.castShadow = true; g.add(top);
-      const legH = def.h - 0.06;
-      const legGeo = new THREE.CylinderGeometry(0.03, 0.03, legH, 8);
-      const legMat = mat(0x3a3020);
-      [[def.w / 2 - 0.1, def.d / 2 - 0.1], [-(def.w / 2 - 0.1), def.d / 2 - 0.1],
-      [def.w / 2 - 0.1, -(def.d / 2 - 0.1)], [-(def.w / 2 - 0.1), -(def.d / 2 - 0.1)]].forEach(([x, z]) => {
-        const leg = new THREE.Mesh(legGeo, legMat);
-        leg.position.set(x, legH / 2, z); leg.castShadow = true; g.add(leg);
-      });
-      return g;
+  } else if(S.tool === 'rotate') {
+    const meshes = S.items.map(i=>objs['i'+i.id]).filter(Boolean);
+    const hits = raycaster.intersectObjects(meshes, true);
+    if(hits.length > 0) {
+      let obj = hits[0].object;
+      while(obj.parent && !obj.userData.itemId && obj.parent !== scene) obj = obj.parent;
+      if(obj) obj.rotation.y += Math.PI/4;
+      showToast('🔄 Rotated 45°');
     }
+  }
+}
 
-    function makeChair(def, color, opacity = 1) {
-      const g = new THREE.Group();
-      const mat = c => new THREE.MeshLambertMaterial({ color: c, transparent: opacity < 1, opacity });
-      const legMat = mat(0x2a2015);
-      const seatGeo = new THREE.BoxGeometry(def.w, 0.12, def.d * 0.7);
-      const seat = new THREE.Mesh(seatGeo, mat(color));
-      seat.position.y = 0.45; seat.castShadow = true; g.add(seat);
-      const back = new THREE.Mesh(new THREE.BoxGeometry(def.w, 0.5, 0.1), mat(color));
-      back.position.set(0, 0.72, -def.d * 0.35); back.castShadow = true; g.add(back);
-      const al = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, def.d * 0.6), mat(color));
-      al.position.set(-def.w / 2 + 0.04, 0.58, 0); g.add(al);
-      const ar = al.clone(); ar.position.x = def.w / 2 - 0.04; g.add(ar);
-      const legH = 0.44; const legGeo = new THREE.CylinderGeometry(0.025, 0.025, legH, 8);
-      [[def.w / 2 - 0.1, def.d * 0.28], [-(def.w / 2 - 0.1), def.d * 0.28],
-      [def.w / 2 - 0.1, -def.d * 0.28], [-(def.w / 2 - 0.1), -def.d * 0.28]].forEach(([x, z]) => {
-        const leg = new THREE.Mesh(legGeo, legMat);
-        leg.position.set(x, legH / 2, z); leg.castShadow = true; g.add(leg);
-      });
-      return g;
-    }
+// ── PLACEMENT ────────────────────────────────────────────────────────────────
+function placeItem(def, pos) {
+  S.idcnt++;
+  const id = S.idcnt;
+  const mesh = buildMesh(def);
+  // Anchor firmly at y=0 (floor level)
+  mesh.position.set(pos.x, 0, pos.z);
+  mesh.userData.itemId = id;
+  mesh.userData.isPlaced = true;
+  // Propagate itemId to children for raycasting
+  mesh.traverse(c => { c.userData.itemId = id; });
+  scene.add(mesh);
+  objs['i'+id] = mesh;
+  const item = { id, def, pos:{x:pos.x,z:pos.z}, baseY:0, foff:Math.random()*Math.PI*2 };
+  S.items.push(item);
+  if(cursorMesh) { scene.remove(cursorMesh); cursorMesh = null; }
+  updStats(); updPlacedList(); updHUD();
+  flashItem(def.emoji + ' ' + def.name + ' placed!');
+  showToast(def.emoji + ' ' + def.name + ' placed!');
+}
 
-    function makeLamp(def, color, opacity = 1) {
-      const g = new THREE.Group();
-      const mat = c => new THREE.MeshLambertMaterial({ color: c, transparent: opacity < 1, opacity });
-      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.06, 16), mat(0x1a1a1a));
-      base.position.y = 0.03; base.castShadow = true; g.add(base);
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, def.h - 0.35, 8), mat(0x333333));
-      pole.position.y = (def.h - 0.35) / 2 + 0.06; pole.castShadow = true; g.add(pole);
-      const shade = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.35, 16, 1, true), mat(color));
-      shade.position.y = def.h - 0.12; shade.castShadow = true; g.add(shade);
-      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12), new THREE.MeshLambertMaterial({ color: 0xffffcc, emissive: 0xffee88, emissiveIntensity: .8, transparent: opacity < 1, opacity }));
-      bulb.position.y = def.h - 0.22; g.add(bulb);
-      return g;
-    }
+function removeItem(id) {
+  const m = objs['i'+id];
+  if(m) scene.remove(m);
+  delete objs['i'+id];
+  S.items = S.items.filter(i=>i.id!==id);
+  updStats(); updPlacedList(); updHUD();
+  showToast('🗑️ Item removed');
+}
 
-    function makeShelf(def, color, opacity = 1) {
-      const g = new THREE.Group();
-      const mat = c => new THREE.MeshLambertMaterial({ color: c, transparent: opacity < 1, opacity });
-      const bk = new THREE.Mesh(new THREE.BoxGeometry(def.w, def.h, 0.04), mat(color));
-      bk.position.y = def.h / 2; g.add(bk);
-      const side = new THREE.BoxGeometry(0.04, def.h, def.d);
-      const sl = new THREE.Mesh(side, mat(color)); sl.position.set(-def.w / 2 + 0.02, def.h / 2, 0); sl.castShadow = true; g.add(sl);
-      const sr = sl.clone(); sr.position.x = def.w / 2 - 0.02; g.add(sr);
-      const nShelves = 4;
-      for (let i = 0; i <= nShelves; i++) {
-        const sh = new THREE.Mesh(new THREE.BoxGeometry(def.w - 0.04, 0.04, def.d), mat(color));
-        sh.position.set(0, i * (def.h / nShelves), 0); sh.castShadow = true; g.add(sh);
+// ── CAMERA START ─────────────────────────────────────────────────────────────
+async function startCamera() {
+  const btn = document.getElementById('scan-btn');
+  btn.textContent = '⏳ Requesting...'; btn.disabled = true;
+  document.getElementById('scan-status').textContent = 'ACCESSING CAMERA';
+  try {
+    // Prefer rear camera, high res
+    const constraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920, min:640 },
+        height: { ideal: 1080, min:480 }
       }
-      return g;
-    }
-
-    function makePlant(def, color, opacity = 1) {
-      const g = new THREE.Group();
-      const mat = c => new THREE.MeshLambertMaterial({ color: c, transparent: opacity < 1, opacity });
-      const pot = new THREE.Mesh(new THREE.CylinderGeometry(def.w * 0.4, def.w * 0.3, def.h * 0.35, 12), mat(0xb05a30));
-      pot.position.y = def.h * 0.175; pot.castShadow = true; g.add(pot);
-      const soil = new THREE.Mesh(new THREE.CylinderGeometry(def.w * 0.38, def.w * 0.38, 0.04, 12), mat(0x2a1a0a));
-      soil.position.y = def.h * 0.34; g.add(soil);
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, def.h * 0.4, 8), mat(0x5a3a1a));
-      trunk.position.y = def.h * 0.55; trunk.castShadow = true; g.add(trunk);
-      for (let i = 0; i < 7; i++) {
-        const angle = i * (Math.PI * 2 / 7); const r = def.w * 0.35 + Math.random() * 0.1;
-        const leaf = new THREE.Mesh(new THREE.SphereGeometry(def.w * (0.35 + Math.random() * 0.15), 8, 6), mat(color));
-        leaf.scale.set(1.4, 0.6, 0.8);
-        leaf.position.set(Math.cos(angle) * r, def.h * 0.75 + Math.random() * 0.15, Math.sin(angle) * r);
-        leaf.castShadow = true; g.add(leaf);
-      }
-      const top = new THREE.Mesh(new THREE.SphereGeometry(def.w * 0.35, 10, 8), mat(color));
-      top.position.y = def.h * 0.85; top.castShadow = true; g.add(top);
-      return g;
-    }
-
-    function makeTVStand(def, color, opacity = 1) {
-      const g = new THREE.Group();
-      const mat = c => new THREE.MeshLambertMaterial({ color: c, transparent: opacity < 1, opacity });
-      const cabinet = new THREE.Mesh(new THREE.BoxGeometry(def.w, def.h * 0.85, def.d), mat(color));
-      cabinet.position.y = def.h * 0.425; cabinet.castShadow = true; g.add(cabinet);
-      const top = new THREE.Mesh(new THREE.BoxGeometry(def.w, 0.03, def.d + 0.04), mat(0x1a1510));
-      top.position.y = def.h * 0.87; g.add(top);
-      const legGeo = new THREE.BoxGeometry(0.08, 0.07, 0.08); const legMat = mat(0x111111);
-      [[def.w / 2 - 0.1, def.d / 2 - 0.08], [-(def.w / 2 - 0.1), def.d / 2 - 0.08],
-      [def.w / 2 - 0.1, -(def.d / 2 - 0.08)], [-(def.w / 2 - 0.1), -(def.d / 2 - 0.08)]].forEach(([x, z]) => {
-        const leg = new THREE.Mesh(legGeo, legMat); leg.position.set(x, 0.035, z); g.add(leg);
-      });
-      const tv = new THREE.Mesh(new THREE.BoxGeometry(def.w * 0.9, def.w * 0.55, 0.06), mat(0x0a0a0a));
-      tv.position.set(0, def.h + def.w * 0.28, 0); tv.castShadow = true; g.add(tv);
-      const screen = new THREE.Mesh(new THREE.BoxGeometry(def.w * 0.86, def.w * 0.5, 0.01), new THREE.MeshLambertMaterial({ color: 0x001133, emissive: 0x002266, emissiveIntensity: .5, transparent: opacity < 1, opacity }));
-      screen.position.set(0, def.h + def.w * 0.28, 0.04); g.add(screen);
-      return g;
-    }
-
-    function makeRug(def, color, opacity = 1) {
-      const g = new THREE.Group();
-      const mat = c => new THREE.MeshLambertMaterial({ color: c, transparent: opacity < 1, opacity, side: THREE.DoubleSide });
-      const rug = new THREE.Mesh(new THREE.BoxGeometry(def.w, 0.025, def.d), mat(color));
-      rug.position.y = 0.012; rug.receiveShadow = true; g.add(rug);
-      const border = new THREE.Mesh(new THREE.BoxGeometry(def.w + 0.06, 0.022, def.d + 0.06), mat(0x8a5a2a));
-      border.position.y = 0.011; g.add(border);
-      const center = new THREE.Mesh(new THREE.BoxGeometry(def.w - 0.1, 0.026, def.d - 0.1), mat(color));
-      center.position.y = 0.013; g.add(center);
-      return g;
-    }
-
-    function makeBed(def, color, opacity = 1) {
-      const g = new THREE.Group();
-      const mat = c => new THREE.MeshLambertMaterial({ color: c, transparent: opacity < 1, opacity });
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(def.w, 0.2, def.d), mat(0x4a3525));
-      frame.position.y = 0.1; frame.castShadow = true; g.add(frame);
-      const mattress = new THREE.Mesh(new THREE.BoxGeometry(def.w - 0.06, 0.22, def.d - 0.1), mat(0xf0ece8));
-      mattress.position.set(0, 0.31, 0); mattress.castShadow = true; g.add(mattress);
-      const pillow1 = new THREE.Mesh(new THREE.BoxGeometry(def.w * 0.42, 0.1, def.d * 0.2), mat(0xffffff));
-      pillow1.position.set(-def.w * 0.2, 0.47, -def.d * 0.35); pillow1.castShadow = true; g.add(pillow1);
-      const pillow2 = pillow1.clone(); pillow2.position.set(def.w * 0.2, 0.47, -def.d * 0.35); g.add(pillow2);
-      const duvet = new THREE.Mesh(new THREE.BoxGeometry(def.w - 0.06, 0.08, def.d * 0.65), mat(color));
-      duvet.position.set(0, 0.46, def.d * 0.12); duvet.castShadow = true; g.add(duvet);
-      const headboard = new THREE.Mesh(new THREE.BoxGeometry(def.w, 0.7, 0.12), mat(0x3a2a18));
-      headboard.position.set(0, 0.55, -def.d / 2 + 0.06); headboard.castShadow = true; g.add(headboard);
-      return g;
-    }
-
-    function makeDresser(def, color, opacity = 1) {
-      const g = new THREE.Group();
-      const mat = c => new THREE.MeshLambertMaterial({ color: c, transparent: opacity < 1, opacity });
-      const body = new THREE.Mesh(new THREE.BoxGeometry(def.w, def.h, def.d), mat(color));
-      body.position.y = def.h / 2; body.castShadow = true; g.add(body);
-      const top = new THREE.Mesh(new THREE.BoxGeometry(def.w + 0.04, 0.04, def.d + 0.04), mat(0x1a1510));
-      top.position.y = def.h + 0.02; g.add(top);
-      const nDrawers = 4;
-      for (let i = 0; i < nDrawers; i++) {
-        const dh = (def.h - 0.06) / nDrawers;
-        const drawer = new THREE.Mesh(new THREE.BoxGeometry(def.w - 0.08, dh - 0.05, 0.04), mat(0x7a6040));
-        drawer.position.set(0, 0.03 + i * dh + dh / 2, -def.d / 2 - 0.01); g.add(drawer);
-        const knob = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), mat(0xc8a060));
-        knob.position.set(0, 0.03 + i * dh + dh / 2, -def.d / 2 - 0.04); g.add(knob);
-      }
-      return g;
-    }
-
-    const FURNITURE_BUILDERS = {
-      sofa: makeSofa, table: makeCoffeeTable, chair: makeChair, lamp: makeLamp,
-      shelf: makeShelf, plant: makePlant, tv: makeTVStand, rug: makeRug, bed: makeBed, dresser: makeDresser
     };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const camEl = document.getElementById('cam-bg');
+    camEl.srcObject = stream;
+    await camEl.play();
+    S.camActive = true;
+    if(S.isMobile) enableOrientation();
+    setTimeout(onResize, 100);
+    runScanAnimation(false);
+  } catch(err) {
+    console.warn('Camera denied:', err);
+    btn.textContent = '🎥 START AR SESSION'; btn.disabled = false;
+    showToast('📷 Camera denied — using demo mode');
+    startDemo();
+  }
+}
 
-    function buildFurnitureMesh(def, colorOverride, opacity = 1) {
-      const color = colorOverride !== undefined ? colorOverride : def.col;
-      const builder = FURNITURE_BUILDERS[def.id];
-      if (builder) return builder(def, color, opacity);
-      const g = new THREE.Mesh(new THREE.BoxGeometry(def.w, def.h, def.d), new THREE.MeshLambertMaterial({ color, transparent: opacity < 1, opacity }));
-      g.castShadow = true; g.receiveShadow = true; return g;
+function startDemo() {
+  S.camActive = true;
+  const camEl = document.getElementById('cam-bg');
+  camEl.style.background = 'linear-gradient(160deg,#1a1830 0%,#0f1520 50%,#2a1e12 50%,#1e140c 100%)';
+  if(S.isMobile) enableOrientation();
+  setTimeout(onResize, 100);
+  runScanAnimation(true);
+}
+
+function runScanAnimation(demo) {
+  const bar = document.getElementById('scan-bar');
+  const status = document.getElementById('scan-status');
+  const msgs = demo
+    ? ['DEMO MODE ACTIVE','SIMULATING ROOM...','MAPPING FLOOR...','AR CALIBRATED!']
+    : ['DETECTING WALLS...','MAPPING SURFACES...','CALIBRATING DEPTH...','AR READY!'];
+  let pct = 0, mi = 0;
+  document.getElementById('scan-line').classList.add('show');
+  const iv = setInterval(()=>{
+    pct += demo ? 8 : (3 + Math.random()*9);
+    bar.style.width = Math.min(pct,100)+'%';
+    if(mi < msgs.length-1 && pct > 25*(mi+1)) { mi++; status.textContent = msgs[mi]; }
+    if(pct >= 100) {
+      clearInterval(iv);
+      document.getElementById('scan-line').classList.remove('show');
+      setTimeout(()=>{
+        document.getElementById('scan-screen').classList.add('hidden');
+        document.getElementById('status-text').textContent = demo?'DEMO':'AR ACTIVE';
+        document.getElementById('h-mode').textContent = 'MODE: '+(demo?'DEMO':'LIVE');
+        beginFloorDetection(demo);
+      }, 400);
     }
+  }, demo?80:110);
+}
 
-    // ─── THREE INIT ───────────────────────────────────────────────────────────────
-    function initThree() {
-      const canvas = document.getElementById('three-canvas');
-      const vp = document.getElementById('viewport');
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      scene = new THREE.Scene();
-      const w = vp.clientWidth, h = vp.clientHeight;
-      // Wider FOV for mobile AR, eye-height camera
-      cam3 = new THREE.PerspectiveCamera(isMobile ? 65 : 58, w / h, .1, 100);
-      cam3.position.set(0, 1.6, 3.5);
-      cam3.lookAt(0, 0, 0);
-      renderer.setSize(w, h);
-      const amb = new THREE.AmbientLight(0xffffff, .7); scene.add(amb);
-      const dir = new THREE.DirectionalLight(0xffffff, .9);
-      dir.position.set(4, 8, 5); dir.castShadow = true;
-      dir.shadow.mapSize.width = 2048; dir.shadow.mapSize.height = 2048;
-      scene.add(dir); objs.dir = dir;
-      const fl = new THREE.Mesh(new THREE.PlaneGeometry(25, 25), new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }));
-      fl.rotation.x = -Math.PI / 2; scene.add(fl); objs.floor = fl;
-      const grid = new THREE.GridHelper(20, 40, 0x4444aa, 0x333388);
-      grid.visible = false; scene.add(grid); objs.grid = grid;
-      raycaster = new THREE.Raycaster(); mouse3 = new THREE.Vector2();
-      canvas.style.pointerEvents = 'auto';
-      const vpe = document.getElementById('viewport');
-      vpe.addEventListener('click', onVPClick);
-      vpe.addEventListener('mousemove', onVPMove);
-      vpe.addEventListener('touchstart', onTouchStart, { passive: true });
-      renderLoop();
-      window.addEventListener('resize', onResize);
-    }
+function beginFloorDetection(demo) {
+  const ring = document.getElementById('floor-ring');
+  const circle = document.getElementById('fr-circle');
+  const label = document.getElementById('fr-label');
+  ring.classList.add('show');
+  document.getElementById('status-text').textContent = 'SCANNING FLOOR';
 
-    // ─── DEVICE ORIENTATION TRACKING ──────────────────────────────────────────
-    function enableDeviceOrientation() {
-      if (deviceOrientationEnabled) return;
-      // iOS 13+ requires permission
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().then(state => {
-          if (state === 'granted') setupOrientationListener();
-        }).catch(() => {});
-      } else {
-        setupOrientationListener();
-      }
-    }
+  const phases = ['DETECTING FLOOR...','ANALYZING PLANE...','LOCKING SURFACE...'];
+  let pi = 0;
+  const phIv = setInterval(()=>{
+    pi++;
+    if(pi < phases.length) label.textContent = phases[pi];
+  }, demo?500:700);
 
-    function setupOrientationListener() {
-      window.addEventListener('deviceorientation', (e) => {
-        if (e.alpha === null) return;
-        deviceOrientationEnabled = true;
-        // Capture initial heading so we can offset from it
-        if (initialAlpha === null) initialAlpha = e.alpha;
-        orientAlpha = e.alpha;
-        orientBeta = e.beta;
-        orientGamma = e.gamma;
-      }, true);
-    }
+  setTimeout(()=>{
+    clearInterval(phIv);
+    S.floorDetected = true;
+    circle.textContent = '✅'; circle.classList.add('ok');
+    label.textContent = 'FLOOR LOCKED ✓'; label.classList.add('ok');
+    document.getElementById('status-text').textContent = demo?'DEMO MODE':'AR ACTIVE';
+    document.getElementById('h-depth').textContent = 'DEPTH: OK';
+    document.getElementById('place-hint').classList.add('show');
+    setTimeout(()=>{
+      ring.classList.remove('show');
+      document.getElementById('place-hint').classList.remove('show');
+    }, 3000);
+    showToast('🎉 Floor locked! Select furniture and tap to place.');
+  }, demo?2000:3000);
+}
 
-    function updateCameraFromOrientation() {
-      if (!deviceOrientationEnabled || !S.camActive) return;
-
-      const deg2rad = Math.PI / 180;
-      // Alpha = compass heading (z-axis rotation)
-      // Beta = front-back tilt (x-axis rotation) — 0 = flat, 90 = upright
-      // Gamma = left-right tilt (y-axis rotation)
-      const alpha = ((orientAlpha - (initialAlpha || 0)) % 360) * deg2rad;
-      const beta = (orientBeta || 90) * deg2rad;
-      const gamma = (orientGamma || 0) * deg2rad;
-
-      // Create rotation from device orientation
-      // Phone held upright (portrait): beta~90, gamma~0
-      const euler = new THREE.Euler();
-      // Convert device orientation to camera rotation
-      // When phone is upright (beta=90), camera should look forward (horizontal)
-      euler.set(
-        beta - Math.PI / 2,  // pitch: beta=90° → looking forward
-        -alpha,               // yaw: compass rotation
-        -gamma,               // roll: tilt left/right
-        'YXZ'
-      );
-      cam3.quaternion.setFromEuler(euler);
-    }
-
-    function renderLoop(t = 0) {
-      requestAnimationFrame(renderLoop);
-      const dt = t - lastFT; lastFT = t; fpsCnt = Math.round(1000 / (dt || 16));
-      document.getElementById('fps-counter').textContent = fpsCnt + ' FPS';
-      document.getElementById('hud-fps').textContent = fpsCnt + ' FPS';
-
-      // Update camera from device orientation on mobile
-      if (isMobile) updateCameraFromOrientation();
-
-      Object.values(objs).forEach(o => {
-        if (o && o.userData && o.userData.isPlaced) {
-          const base = o.userData.baseY;
-          const off = Math.sin(t * .0008 + o.userData.foff) * .015;
-          o.position.y = base + off;
-        }
-      });
-      if (renderer) renderer.render(scene, cam3);
-    }
-
-    function onResize() {
-      const vp = document.getElementById('viewport');
-      const w = vp.clientWidth, h = vp.clientHeight;
-      if (w === 0 || h === 0) return;
-      cam3.aspect = w / h; cam3.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    }
-
-    function getFloorPt(nx, ny) {
-      mouse3.set(nx, ny);
-      raycaster.setFromCamera(mouse3, cam3);
-      const hits = raycaster.intersectObject(objs.floor);
-      return hits.length > 0 ? hits[0].point : null;
-    }
-
-    function onVPMove(e) {
-      if (!S.camActive || !S.floorDetected) return;
-      const vp = document.getElementById('viewport');
-      const r = vp.getBoundingClientRect();
-      const nx = ((e.clientX - r.left) / r.width) * 2 - 1;
-      const ny = -((e.clientY - r.top) / r.height) * 2 + 1;
-      if (S.tool === 'place' && S.selFurniture) {
-        const pt = getFloorPt(nx, ny);
-        if (pt) {
-          if (!cursorMesh) { cursorMesh = buildFurnitureMesh(S.selFurniture, 0x6c63ff, .35); scene.add(cursorMesh) }
-          cursorMesh.position.set(pt.x, 0, pt.z);
-        }
-      } else { if (cursorMesh) { scene.remove(cursorMesh); cursorMesh = null } }
-    }
-
-    function onVPClick(e) {
-      if (!S.camActive) return;
-      if (e.target.tagName === 'BUTTON') return;
-      if (!S.floorDetected) { showNoFloorWarn(); return; }
-      const vp = document.getElementById('viewport');
-      const r = vp.getBoundingClientRect();
-      const nx = ((e.clientX - r.left) / r.width) * 2 - 1;
-      const ny = -((e.clientY - r.top) / r.height) * 2 + 1;
-      handlePlacement(nx, ny);
-    }
-
-    function onTouchStart(e) {
-      if (!S.camActive) return;
-      if (!S.floorDetected) { showNoFloorWarn(); return; }
-      const t = e.touches[0];
-      const vp = document.getElementById('viewport');
-      const r = vp.getBoundingClientRect();
-      const nx = ((t.clientX - r.left) / r.width) * 2 - 1;
-      const ny = -((t.clientY - r.top) / r.height) * 2 + 1;
-      handlePlacement(nx, ny);
-    }
-
-    let noFloorTm;
-    function showNoFloorWarn() {
-      const w = document.getElementById('no-floor-warn');
-      w.classList.add('visible');
-      clearTimeout(noFloorTm);
-      noFloorTm = setTimeout(() => w.classList.remove('visible'), 2200);
-    }
-
-    function handlePlacement(nx, ny) {
-      raycaster.setFromCamera({ x: nx, y: ny }, cam3);
-      if (S.tool === 'place' && S.selFurniture) {
-        const pt = getFloorPt(nx, ny);
-        if (pt) placeFurniture(S.selFurniture, pt);
-      } else if (S.tool === 'delete') {
-        const meshes = S.items.map(i => objs['i' + i.id]).filter(Boolean);
-        const hits = raycaster.intersectObjects(meshes, true);
-        if (hits.length > 0) {
-          let obj = hits[0].object;
-          while (obj.parent && !obj.userData.itemId) obj = obj.parent;
-          const id = obj.userData.itemId || hits[0].object.userData.itemId;
-          if (!id) {
-            const topObj = hits[0].object; let found = null;
-            S.items.forEach(item => { const m = objs['i' + item.id]; if (m && isDescendant(topObj, m)) found = item.id });
-            if (found) removeFurniture(found);
-          } else removeFurniture(id);
-        }
-      } else if (S.tool === 'rotate') {
-        const meshes = S.items.map(i => objs['i' + i.id]).filter(Boolean);
-        const hits = raycaster.intersectObjects(meshes, true);
-        if (hits.length > 0) {
-          let obj = hits[0].object;
-          while (obj.parent && !obj.userData.itemId && obj.parent !== scene) obj = obj.parent;
-          if (obj) obj.rotation.y += Math.PI / 4;
-        }
-      }
-    }
-
-    function isDescendant(child, parent) {
-      let c = child;
-      while (c) { if (c === parent) return true; c = c.parent }
-      return false;
-    }
-
-    function placeFurniture(def, pos) {
-      S.idcnt++; const id = S.idcnt;
-      const mesh = buildFurnitureMesh(def);
-      mesh.position.set(pos.x, 0, pos.z);
-      mesh.userData.isPlaced = true;
-      mesh.userData.baseY = 0;
-      mesh.userData.foff = Math.random() * Math.PI * 2;
-      mesh.userData.itemId = id;
-      // propagate itemId to all children
-      mesh.traverse(c => { c.userData.itemId = id });
-      scene.add(mesh);
-      objs['i' + id] = mesh;
-      S.items.push({ id, def, pos: { x: pos.x, z: pos.z } });
-      updStats(); updPlacedList();
-      showToast(def.emoji + ' ' + def.name + ' placed!');
-      updHUD();
-      if (cursorMesh) { scene.remove(cursorMesh); cursorMesh = null }
-    }
-
-    function removeFurniture(id) {
-      const m = objs['i' + id]; if (m) scene.remove(m); delete objs['i' + id];
-      S.items = S.items.filter(i => i.id !== id);
-      updStats(); updPlacedList(); updHUD(); showToast('🗑️ Item removed');
-    }
-
-    function resetScene() {
-      S.items.forEach(item => { const m = objs['i' + item.id]; if (m) scene.remove(m); delete objs['i' + item.id] });
-      S.items = []; S.theme = null; S.paint = null; S.lighting = 'natural';
-      // Reset floor detection — require re-scan
-      S.floorDetected = false; S.camActive = false;
-      initialAlpha = null; deviceOrientationEnabled = false;
-      cam3.position.set(0, 1.6, 3.5); cam3.lookAt(0, 0, 0);
-      document.getElementById('floor-indicator').classList.remove('visible', 'detected');
-      document.getElementById('scan').classList.remove('hidden');
-      document.getElementById('scan-bar').style.width = '0%';
-      document.getElementById('scan-text').textContent = 'INITIALIZING AR';
-      document.getElementById('scambtn').textContent = '🎥 Start Camera';
-      document.getElementById('scambtn').disabled = false;
-      document.getElementById('hud-scan').textContent = 'DEPTH: --';
-      // Stop camera stream
-      const cam = document.getElementById('cam');
-      if (cam.srcObject) { cam.srcObject.getTracks().forEach(t => t.stop()); cam.srcObject = null; }
-      document.getElementById('viewport').style.background = '#000';
-      document.getElementById('poverlay').style.opacity = '0';
-      document.getElementById('loverlay').style.background = 'transparent';
-      document.getElementById('cam').style.filter = '';
-      document.querySelectorAll('.tcard,.m-tcard').forEach(c => c.classList.remove('active'));
-      document.querySelectorAll('.lbtn,.m-lbtn').forEach(b => b.classList.remove('active'));
-      document.getElementById('lbtns').children[0]?.classList.add('active');
-      document.getElementById('m-lbtns').children[0]?.classList.add('active');
-      document.querySelectorAll('.csw,.m-csw').forEach(s => s.classList.remove('active'));
-      document.getElementById('ai-response').textContent = 'Apply a theme or describe your vision to get AI design suggestions...';
-      document.getElementById('m-ai-response').textContent = 'Describe your design vision...';
-      updStats(); updPlacedList(); updHUD(); showToast('↩️ Scene reset');
-    }
-
-    // ─── CAMERA ─────────────────────────────────────────────────────────────────
-    async function startCamera() {
-      const btn = document.getElementById('scambtn');
-      btn.textContent = '⏳ Starting...'; btn.disabled = true;
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } });
-        document.getElementById('cam').srcObject = stream;
-        S.camActive = true;
-        S.floorDetected = false;
-        // Enable gyroscope tracking on mobile
-        if (isMobile) enableDeviceOrientation();
-        // Force resize to match viewport after layout
-        setTimeout(onResize, 100);
-        animScan(['DETECTING WALLS...', 'MAPPING FLOOR...', 'ANALYZING DEPTH...', 'CALIBRATING AR...', 'READY!']);
-      } catch (e) {
-        btn.textContent = '🎥 Start Camera'; btn.disabled = false;
-        showToast('📷 Camera denied — demo mode active');
-        startDemo();
-      }
-    }
-
-    function startDemo() {
-      S.camActive = true;
-      S.floorDetected = false;
-      if (isMobile) enableDeviceOrientation();
-      setTimeout(onResize, 100);
-      animScan(['DEMO MODE', 'LOADING ROOM...', 'MAPPING FLOOR...', 'AR CALIBRATED!'], true);
-    }
-
-    function animScan(msgs, demo = false) {
-      const bar = document.getElementById('scan-bar');
-      const txt = document.getElementById('scan-text');
-      let pct = 0, mi = 0;
-      const iv = setInterval(() => {
-        pct += demo ? 7 : (4 + Math.random() * 8);
-        bar.style.width = Math.min(pct, 100) + '%';
-        if (mi < msgs.length - 1 && pct > 25 * (mi + 1)) { mi++; txt.textContent = msgs[mi] }
-        if (pct >= 100) {
-          clearInterval(iv);
-          setTimeout(() => {
-            document.getElementById('scan').classList.add('hidden');
-            document.getElementById('status-text').textContent = 'SCANNING FLOOR';
-            document.getElementById('hud-mode').textContent = 'MODE: SCANNING';
-            if (demo) {
-              document.getElementById('viewport').style.background = 'linear-gradient(160deg,#1a1830 0%,#0f1520 45%,#2a1e12 45%,#1e140c 100%)';
-            }
-            // Start floor detection phase
-            startFloorDetection(demo);
-          }, 400);
-        }
-      }, demo ? 90 : 120);
-    }
-
-    function startFloorDetection(demo) {
-      const fi = document.getElementById('floor-indicator');
-      const fiText = fi.querySelector('.fi-text');
-      const fiRing = fi.querySelector('.fi-ring');
-      fi.classList.add('visible');
-      fi.classList.remove('detected');
-      fiText.textContent = 'DETECTING FLOOR...';
-      fiRing.textContent = '📐';
-
-      const phases = ['SCANNING SURFACE...', 'ANALYZING PLANE...', 'MAPPING FLOOR...'];
-      let phase = 0;
-      const phaseIv = setInterval(() => {
-        phase++;
-        if (phase < phases.length) {
-          fiText.textContent = phases[phase];
-        }
-      }, demo ? 600 : 900);
-
-      // Simulate floor detection completing
-      const detectTime = demo ? 2000 : 3000;
-      setTimeout(() => {
-        clearInterval(phaseIv);
-        S.floorDetected = true;
-        fi.classList.add('detected');
-        fiRing.textContent = '✅';
-        fiText.textContent = 'FLOOR DETECTED';
-        document.getElementById('status-text').textContent = demo ? 'DEMO MODE' : 'AR ACTIVE';
-        document.getElementById('hud-mode').textContent = 'MODE: ' + (demo ? 'DEMO' : 'LIVE');
-        document.getElementById('hud-scan').textContent = 'DEPTH: OK';
-        showToast('🎉 Floor detected! Tap to place furniture.');
-        // Hide indicator after a moment
-        setTimeout(() => {
-          fi.classList.remove('visible');
-        }, 2500);
-      }, detectTime);
-    }
-
-    // ─── THEMES ─────────────────────────────────────────────────────────────────
-    function buildThemes() {
-      ['theme-grid', 'm-theme-grid'].forEach((gid, isMobile) => {
-        const g = document.getElementById(gid);
-        THEMES.forEach(t => {
-          const card = document.createElement('div');
-          card.className = (gid === 'theme-grid' ? 'tcard' : 'm-tcard');
-          card.id = (gid === 'theme-grid' ? 'tc-' : 'mtc-') + t.id;
-          card.innerHTML = `<canvas width="100" height="100"></canvas><div class="te">${t.emoji}</div><div class="tn">${t.name}</div>`;
-          card.onclick = () => applyTheme(t);
-          const cv = card.querySelector('canvas'); const ctx = cv.getContext('2d');
-          const gr = ctx.createLinearGradient(0, 0, 100, 100);
-          t.colors.forEach((c, i) => gr.addColorStop(i / (t.colors.length - 1), c));
-          ctx.fillStyle = gr; ctx.fillRect(0, 0, 100, 100);
-          g.appendChild(card);
-        });
-      });
-    }
-
-    function applyTheme(t) {
-      S.theme = t.id;
-      document.querySelectorAll('.tcard,.m-tcard').forEach(c => c.classList.remove('active'));
-      ['tc-', 'mtc-'].forEach(pre => { document.getElementById(pre + t.id)?.classList.add('active') });
-      const po = document.getElementById('poverlay');
-      po.style.background = t.wallColor; po.style.opacity = '1';
-      const lt = LIGHTING.find(l => l.id === t.light) || LIGHTING[0];
-      applyLighting(lt, true);
-      document.getElementById('stat-theme').textContent = t.name.slice(0, 5).toUpperCase();
-      updHUD();
-      typeAI(t.ai, 'ai-response');
-      typeAI(t.ai, 'm-ai-response');
-      showToast('✨ ' + t.name + ' theme applied!');
-      updThreeColors(t);
-    }
-
-    function updThreeColors(t) {
-      if (!objs.dir) return;
-      const lightCols = { natural: 0xffffff, warm: 0xffaa44, cool: 0xaabbff, golden: 0xffcc66, neon: 0xff44ff, night: 0x334466, dramatic: 0x888888, tungsten: 0xffaa22 };
-      const lt = LIGHTING.find(l => l.id === t.light);
-      if (lt) objs.dir.color.setHex(lightCols[lt.id] || 0xffffff);
-    }
-
-    // ─── LIGHTING ────────────────────────────────────────────────────────────────
-    function buildLighting() {
-      ['lbtns', 'm-lbtns'].forEach(lid => {
-        const c = document.getElementById(lid);
-        LIGHTING.forEach(lt => {
-          const b = document.createElement('div');
-          b.className = (lid === 'lbtns' ? 'lbtn' : 'm-lbtn') + (lt.id === 'natural' ? ' active' : '');
-          b.id = (lid === 'lbtns' ? 'lb-' : 'mlb-') + lt.id;
-          b.innerHTML = `<div class="${lid === 'lbtns' ? 'li' : 'mli'}">${lt.emoji}</div><div>${lt.name}</div>`;
-          b.onclick = () => applyLighting(lt);
-          c.appendChild(b);
-        });
-      });
-    }
-
-    function applyLighting(lt, fromTheme = false) {
-      S.lighting = lt.id;
-      document.querySelectorAll('.lbtn,.m-lbtn').forEach(b => b.classList.remove('active'));
-      ['lb-', 'mlb-'].forEach(pre => { document.getElementById(pre + lt.id)?.classList.add('active') });
-      document.getElementById('loverlay').style.background = lt.css || 'transparent';
-      document.getElementById('cam').style.filter = lt.filter || '';
-      if (objs.dir) {
-        const cm = { natural: 0xffffff, warm: 0xffaa44, cool: 0xaabbff, golden: 0xffcc66, neon: 0xff44ff, night: 0x334466, dramatic: 0x888888, tungsten: 0xffaa22 };
-        objs.dir.color.setHex(cm[lt.id] || 0xffffff);
-      }
-      updHUD();
-      if (!fromTheme) showToast(lt.emoji + ' ' + lt.name + ' lighting');
-    }
-
-    // ─── COLORS ─────────────────────────────────────────────────────────────────
-    function buildColors() {
-      [['color-palette', 'csw'], ['m-color-palette', 'm-csw']].forEach(([cid, cls]) => {
-        const c = document.getElementById(cid);
-        PALETTE.forEach(row => {
-          const rd = document.createElement('div');
-          rd.className = (cid === 'color-palette' ? 'crow' : 'm-crow');
-          row.forEach(hex => {
-            const sw = document.createElement('div');
-            sw.className = cls; sw.style.background = hex; sw.title = hex;
-            sw.onclick = () => applyPaint(hex, sw, cid === 'color-palette' ? 'desktop' : 'mobile');
-            rd.appendChild(sw);
-          });
-          c.appendChild(rd);
-        });
-      });
-    }
-
-    function applyPaint(hex, sw, mode) {
-      S.paint = hex;
-      const cls = mode === 'desktop' ? '.csw' : '.m-csw';
-      document.querySelectorAll(cls).forEach(s => s.classList.remove('active'));
-      sw.classList.add('active');
-      const po = document.getElementById('poverlay');
-      po.style.background = hex; po.style.opacity = (S.paintOp / 100).toString();
-      document.getElementById('hud-color').textContent = 'PAINT: ' + hex;
-      showToast('🎨 Wall color: ' + hex);
-    }
-
-    function updOp(val, mobile = false) {
-      S.paintOp = parseInt(val);
-      const el = mobile ? document.getElementById('m-ov') : document.getElementById('ov');
-      if (el) el.textContent = val + '%';
-      if (S.paint) document.getElementById('poverlay').style.opacity = (val / 100).toString();
-    }
-
-    // ─── FURNITURE LIST ──────────────────────────────────────────────────────────
-    function buildFurnitureList() {
-      ['furniture-list', 'm-furniture-list'].forEach(lid => {
-        const list = document.getElementById(lid);
-        FURNITURE.forEach(def => {
-          if (lid === 'furniture-list') {
-            const item = document.createElement('div');
-            item.className = 'fitem'; item.id = 'fi-' + def.id;
-            item.innerHTML = `<div class="fi">${def.emoji}</div><div><div class="fn">${def.name}</div><div class="fs">${def.w}×${def.d}m</div></div><div class="fa">+</div>`;
-            item.onclick = () => selFurniture(def);
-            list.appendChild(item);
-          } else {
-            const item = document.createElement('div');
-            item.className = 'm-fitem'; item.id = 'mfi-' + def.id;
-            item.innerHTML = `<div class="mfi">${def.emoji}</div><div>${def.name}</div>`;
-            item.onclick = () => { selFurniture(def); closeDrawer() };
-            list.appendChild(item);
-          }
-        });
-      });
-    }
-
-    function selFurniture(def) {
-      S.selFurniture = def;
-      document.querySelectorAll('.fitem').forEach(i => i.classList.remove('sel'));
-      document.getElementById('fi-' + def.id)?.classList.add('sel');
-      document.querySelectorAll('.m-fitem').forEach(i => i.classList.remove('sel'));
-      document.getElementById('mfi-' + def.id)?.classList.add('sel');
-      setTool('place');
-      const si = document.getElementById('sel-indicator');
-      si.textContent = def.emoji + ' ' + def.name + ' — tap to place';
-      si.classList.add('visible');
-      setTimeout(() => si.classList.remove('visible'), 3000);
-      showToast(def.emoji + ' ' + def.name + ' — click viewport to place');
-    }
-
-    // ─── QUICK PROMPTS ────────────────────────────────────────────────────────────
-    function buildQPs() {
-      ['qp-list', 'm-qp-list'].forEach(lid => {
-        const c = document.getElementById(lid);
-        QPS.forEach(q => {
-          const chip = document.createElement('div');
-          chip.className = lid === 'qp-list' ? 'qpchip' : 'm-qp';
-          chip.innerHTML = `<span class="${lid === 'qp-list' ? 'qi' : 'qi'}">${q.icon}</span>${q.text}`;
-          chip.onclick = () => {
-            if (lid === 'qp-list') { document.getElementById('ai-prompt').value = q.text; sendAI() }
-            else { document.getElementById('m-ai-prompt').value = q.text; sendAIM() }
-          };
-          c.appendChild(chip);
-        });
-      });
-    }
-
-    // ─── AI ──────────────────────────────────────────────────────────────────────
-    function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAI() } }
-    function handleKeyM(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIM() } }
-
-    async function sendAI(prompt) {
-      const inp = document.getElementById('ai-prompt');
-      const p = prompt || inp.value.trim();
-      if (!p || S.thinking) return;
-      S.thinking = true; if (!prompt) inp.value = '';
-      processAI(p, 'ai-response');
-    }
-    async function sendAIM() {
-      const inp = document.getElementById('m-ai-prompt');
-      const p = inp.value.trim();
-      if (!p || S.thinking) return;
-      S.thinking = true; inp.value = '';
-      processAI(p, 'm-ai-response');
-    }
-
-    async function processAI(p, respId) {
-      const el = document.getElementById(respId);
-      el.innerHTML = '<div class="ai-dots"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>';
-      const pl = p.toLowerCase();
-      const matched = THEMES.find(t => pl.includes(t.id) || pl.includes(t.name.toLowerCase()) || (t.id === 'scandi' && pl.includes('scandinavian')) || (t.id === 'artdeco' && (pl.includes('art deco') || pl.includes('déco') || pl.includes('deco'))));
-      if (matched) { setTimeout(() => { applyTheme(matched); S.thinking = false }, 700); return }
-      try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: `You are an expert AR interior designer. Give specific, enthusiastic design advice in 3-4 sentences. Mention colors, materials, and furniture from this list: Sofa, Coffee Table, Arm Chair, Floor Lamp, Bookshelf, Plant, TV Stand, Area Rug, King Bed, Dresser. Be specific and actionable.`, messages: [{ role: 'user', content: p }] }) });
-        const data = await res.json();
-        const txt = data.content?.[0]?.text || fallback();
-        S.thinking = false; typeAI(txt, respId);
-        if (respId === 'ai-response') typeAI(txt, 'm-ai-response');
-        else typeAI(txt, 'ai-response');
-      } catch (e) { S.thinking = false; typeAI(fallback(), respId) }
-    }
-
-    function fallback() {
-      const fb = ["Try the Japandi theme for wabi-sabi harmony! Place a Coffee Table center-stage, add a Floor Lamp in the corner, and layer an Area Rug beneath for warmth. Soft earth tones on the walls tie it all together.", "Industrial loft incoming! Use dark wall paint, place a Bookshelf against the back wall, add a Floor Lamp for that Edison bulb glow. Pair with tungsten lighting for maximum atmosphere.", "For the perfect cozy corner: Arm Chair near the window, Bookshelf within arm's reach, Floor Lamp overhead. Warm lighting + cream walls = instant hygge."];
-      return fb[Math.floor(Math.random() * fb.length)];
-    }
-
-    function typeAI(text, elId) {
-      const el = document.getElementById(elId); if (!el) return;
-      el.textContent = ''; el.classList.add('typing');
-      let i = 0; const iv = setInterval(() => { el.textContent += text[i++]; if (i >= text.length) { clearInterval(iv); el.classList.remove('typing') } }, 16);
-    }
-
-    // ─── TOOLS ───────────────────────────────────────────────────────────────────
-    function setTool(t) {
-      S.tool = t;
-      document.querySelectorAll('.btool').forEach(b => b.classList.remove('active'));
-      document.getElementById('tool-' + t)?.classList.add('active');
-      const ti = document.getElementById('tool-indicator');
-      ti.textContent = { place: '🪑 PLACE MODE', move: '✋ MOVE MODE', rotate: '🔄 ROTATE MODE', scale: '⬛ SCALE MODE', delete: '🗑️ DELETE MODE' }[t] || '';
-      ti.classList.add('visible'); setTimeout(() => ti.classList.remove('visible'), 2000);
-      if (t !== 'place') { S.selFurniture = null; if (cursorMesh) { scene.remove(cursorMesh); cursorMesh = null } }
-    }
-
-    function mSetTool(t) {
-      S.tool = t;
-      document.querySelectorAll('.mbtool').forEach(b => b.classList.remove('active'));
-      document.getElementById('m-' + t)?.classList.add('active');
-      setTool(t);
-    }
-
-    // ─── MOBILE DRAWER ───────────────────────────────────────────────────────────
-    function toggleDrawer() {
-      drawerOpen = !drawerOpen;
-      document.getElementById('mobile-drawer').classList.toggle('open', drawerOpen);
-    }
-    function closeDrawer() { drawerOpen = false; document.getElementById('mobile-drawer').classList.remove('open') }
-    function switchTab(name) {
-      document.querySelectorAll('.dtab').forEach((t, i) => { t.classList.toggle('active', ['themes', 'furniture', 'paint', 'lighting', 'ai'][i] === name) });
-      document.querySelectorAll('.dtabcont').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-' + name)?.classList.add('active');
-    }
-    document.addEventListener('click', e => {
-      const drawer = document.getElementById('mobile-drawer');
-      if (drawerOpen && !drawer.contains(e.target) && !e.target.closest('.mbtool')) { closeDrawer() }
+// ── THEMES ───────────────────────────────────────────────────────────────────
+function buildThemes() {
+  ['theme-grid','m-theme-grid'].forEach(gid=>{
+    const isMob = gid==='m-theme-grid';
+    const g = document.getElementById(gid);
+    THEMES.forEach(t=>{
+      const card = document.createElement('div');
+      card.className = isMob?'m-tcard':'t-card';
+      card.id = (isMob?'mt-':'dt-')+t.id;
+      card.innerHTML = `<canvas width="100" height="100"></canvas><div class="${isMob?'te':'tc-emoji'}">${t.emoji}</div><div class="${isMob?'tn':'tc-name'}">${t.name}</div>`;
+      card.onclick = ()=>applyTheme(t);
+      const cv=card.querySelector('canvas'),ctx=cv.getContext('2d');
+      const gr=ctx.createLinearGradient(0,0,100,100);
+      t.colors.forEach((c,i)=>gr.addColorStop(i/(t.colors.length-1),c));
+      ctx.fillStyle=gr;ctx.fillRect(0,0,100,100);
+      g.appendChild(card);
     });
+  });
+}
 
-    // ─── UI UPDATES ──────────────────────────────────────────────────────────────
-    function updStats() {
-      document.getElementById('stat-items').textContent = S.items.length;
-      document.getElementById('hud-items').textContent = 'ITEMS: ' + S.items.length;
-    }
-    function updHUD() {
-      const t = THEMES.find(th => th.id === S.theme);
-      document.getElementById('hud-theme').textContent = 'THEME: ' + (t ? t.name.toUpperCase() : 'DEFAULT');
-      document.getElementById('hud-light').textContent = 'LIGHT: ' + S.lighting.toUpperCase();
-      if (t) document.getElementById('stat-theme').textContent = t.name.slice(0, 5).toUpperCase();
-    }
-    function updPlacedList() {
-      const list = document.getElementById('placed-list');
-      list.innerHTML = '';
-      if (S.items.length === 0) { list.innerHTML = '<div style="color:var(--muted);font-size:10px;font-family:DM Mono;padding:6px 0">No items placed yet</div>'; return }
-      S.items.forEach(item => {
-        const row = document.createElement('div'); row.className = 'prow';
-        row.innerHTML = `<div class="pi">${item.def.emoji}</div><div class="pn">${item.def.name}</div><div class="pdel" onclick="removeFurniture(${item.id})">✕</div>`;
-        list.appendChild(row);
+function applyTheme(t) {
+  S.theme = t.id;
+  document.querySelectorAll('.t-card,.m-tcard').forEach(c=>c.classList.remove('active'));
+  ['dt-','mt-'].forEach(p=>document.getElementById(p+t.id)?.classList.add('active'));
+  // Apply wall paint overlay
+  const po = document.getElementById('paint-overlay');
+  const hex = t.wallColor;
+  po.style.background = hex;
+  po.style.opacity = t.wallAlpha;
+  // Apply matching lighting
+  const lt = LIGHTING.find(l=>l.id===t.light)||LIGHTING[0];
+  applyLighting(lt, true);
+  document.getElementById('stat-theme').textContent = t.name.slice(0,5).toUpperCase();
+  updHUD();
+  typeAI(t.ai,'ai-response');
+  typeAI(t.ai,'m-ai-response');
+  showToast('✨ '+t.name+' theme applied!');
+}
+
+// ── LIGHTING ─────────────────────────────────────────────────────────────────
+function buildLighting() {
+  ['lbtns','m-lbtns'].forEach(lid=>{
+    const isMob = lid==='m-lbtns';
+    const c = document.getElementById(lid);
+    LIGHTING.forEach(lt=>{
+      const b = document.createElement('div');
+      b.className = (isMob?'m-lbtn':'l-btn')+(lt.id==='natural'?' active':'');
+      b.id=(isMob?'ml-':'dl-')+lt.id;
+      b.innerHTML=`<div class="${isMob?'mli':'li'}">${lt.emoji}</div><div>${lt.name}</div>`;
+      b.onclick=()=>applyLighting(lt);
+      c.appendChild(b);
+    });
+  });
+}
+
+function applyLighting(lt, fromTheme=false) {
+  S.lighting=lt.id;
+  document.querySelectorAll('.l-btn,.m-lbtn').forEach(b=>b.classList.remove('active'));
+  ['dl-','ml-'].forEach(p=>document.getElementById(p+lt.id)?.classList.add('active'));
+  document.getElementById('light-overlay').style.background=lt.css||'transparent';
+  document.getElementById('cam-bg').style.filter=lt.filter||'';
+  if(objs.dir){
+    const cm={natural:0xffffff,warm:0xffaa44,cool:0xaabbff,golden:0xffcc66,neon:0xff44ff,night:0x334466,dramatic:0x888888,tungsten:0xffaa22};
+    objs.dir.color.setHex(cm[lt.id]||0xffffff);
+  }
+  updHUD();
+  if(!fromTheme) showToast(lt.emoji+' '+lt.name+' lighting');
+}
+
+// ── COLORS ───────────────────────────────────────────────────────────────────
+function buildColors() {
+  [['color-palette','c-swatch','c-row'],['m-color-palette','m-csw','m-crow']].forEach(([cid,cls,rowCls])=>{
+    const c=document.getElementById(cid);
+    PALETTE.forEach(row=>{
+      const rd=document.createElement('div');rd.className=rowCls;
+      row.forEach(hex=>{
+        const sw=document.createElement('div');
+        sw.className=cls;sw.style.background=hex;sw.title=hex;
+        sw.onclick=()=>applyPaint(hex,sw,cls);
+        rd.appendChild(sw);
       });
-    }
+      c.appendChild(rd);
+    });
+  });
+}
 
-    // ─── UTILS ───────────────────────────────────────────────────────────────────
-    function toggleGrid() { S.grid = !S.grid; if (objs.grid) objs.grid.visible = S.grid; showToast(S.grid ? '⊞ Grid on' : '⊞ Grid off') }
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
-      else document.exitFullscreen?.();
-    }
-    function saveLayout() {
-      const data = { theme: S.theme, lighting: S.lighting, paint: S.paint, items: S.items.map(i => ({ defId: i.def.id, pos: i.pos })) };
-      try { localStorage.setItem('iai-layout', JSON.stringify(data)); showToast('💾 Layout saved!') } catch (e) { showToast('⚠️ Save failed') }
-    }
-    function shareLayout() {
-      if (navigator.share) { navigator.share({ title: 'My AR Room Design', text: 'Check out my interior design from INTERIOR.AI!', url: window.location.href }) }
-      else { navigator.clipboard?.writeText(window.location.href); showToast('🔗 Link copied!') }
-    }
-    function exportRender() {
-      const canvas = document.getElementById('three-canvas');
-      const link = document.createElement('a');
-      link.download = 'interior-ai-room.png'; link.href = canvas.toDataURL(); link.click();
-      showToast('📷 Render saved!');
-    }
+function applyPaint(hex, sw, cls) {
+  S.paint=hex;
+  document.querySelectorAll('.'+cls).forEach(s=>s.classList.remove('active'));
+  sw.classList.add('active');
+  const po=document.getElementById('paint-overlay');
+  po.style.background=hex;po.style.opacity=(S.paintOp/100).toString();
+  document.getElementById('h-color') && (document.getElementById('h-color').textContent='PAINT: '+hex);
+  showToast('🎨 Wall color: '+hex);
+}
 
-    let toastTm;
-    function showToast(msg) {
-      const t = document.getElementById('toast');
-      t.textContent = msg; t.classList.add('show');
-      clearTimeout(toastTm); toastTm = setTimeout(() => t.classList.remove('show'), 2400);
-    }
+function updOp(val, mobile=false) {
+  S.paintOp=parseInt(val);
+  const el=document.getElementById(mobile?'m-ov':'ov');
+  if(el) el.textContent=val+'%';
+  if(S.paint) document.getElementById('paint-overlay').style.opacity=(val/100).toString();
+}
 
-    // ─── INIT ─────────────────────────────────────────────────────────────────────
-    function init() {
-      buildThemes(); buildFurnitureList(); buildColors(); buildQPs(); buildLighting();
-      initThree(); updPlacedList(); updStats();
-    }
-    document.addEventListener('DOMContentLoaded', init);
-  </script>
+// ── FURNITURE LIST ────────────────────────────────────────────────────────────
+function buildFurnitureList() {
+  ['furniture-list','m-furniture-list'].forEach(lid=>{
+    const isMob=lid==='m-furniture-list';
+    const list=document.getElementById(lid);
+    FURNITURE.forEach(def=>{
+      const item=document.createElement('div');
+      item.className=isMob?'m-fitem':'f-item';
+      item.id=(isMob?'mf-':'df-')+def.id;
+      if(isMob){
+        item.innerHTML=`<div class="mfi">${def.emoji}</div><div>${def.name}</div>`;
+        item.onclick=()=>{ selFurniture(def); closeDrawer(); };
+      } else {
+        item.innerHTML=`<div class="fi-emoji">${def.emoji}</div><div><div class="fi-name">${def.name}</div><div class="fi-dim">${def.w}×${def.d}m</div></div><div class="fi-add">+</div>`;
+        item.onclick=()=>selFurniture(def);
+      }
+      list.appendChild(item);
+    });
+  });
+}
+
+function selFurniture(def) {
+  S.selFurniture=def;
+  document.querySelectorAll('.f-item,.m-fitem').forEach(i=>i.classList.remove('sel'));
+  ['df-','mf-'].forEach(p=>document.getElementById(p+def.id)?.classList.add('sel'));
+  setTool('place');
+  const ph=document.getElementById('place-hint');
+  ph.textContent=def.emoji+' '+def.name+' — tap floor to place';
+  ph.classList.add('show');
+  setTimeout(()=>ph.classList.remove('show'),3000);
+  showToast(def.emoji+' '+def.name+' selected — tap to place');
+}
+
+// ── QUICK PROMPTS ─────────────────────────────────────────────────────────────
+function buildQPs() {
+  ['qp-list','m-qp-list'].forEach(lid=>{
+    const isMob=lid==='m-qp-list';
+    const c=document.getElementById(lid);
+    QPS.forEach(q=>{
+      const chip=document.createElement('div');
+      chip.className=isMob?'m-qp':'qp-chip';
+      chip.innerHTML=`<span>${q.icon}</span>${q.text}`;
+      chip.onclick=()=>{
+        if(isMob){document.getElementById('m-ai-prompt').value=q.text;sendAIM();}
+        else{document.getElementById('ai-prompt').value=q.text;sendAI();}
+      };
+      c.appendChild(chip);
+    });
+  });
+}
+
+// ── AI ────────────────────────────────────────────────────────────────────────
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();}}
+function handleKeyM(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAIM();}}
+
+async function sendAI(){
+  const inp=document.getElementById('ai-prompt');
+  const p=inp.value.trim();
+  if(!p||S.thinking)return;
+  S.thinking=true;inp.value='';
+  processAI(p,'ai-response');
+}
+async function sendAIM(){
+  const inp=document.getElementById('m-ai-prompt');
+  const p=inp.value.trim();
+  if(!p||S.thinking)return;
+  S.thinking=true;inp.value='';
+  processAI(p,'m-ai-response');
+}
+
+async function processAI(p,rid){
+  const el=document.getElementById(rid);
+  el.innerHTML='<div class="ai-dots"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>';
+  const pl=p.toLowerCase();
+  const matched=THEMES.find(t=>
+    pl.includes(t.id)||pl.includes(t.name.toLowerCase())||
+    (t.id==='scandi'&&pl.includes('scandinavian'))||
+    (t.id==='artdeco'&&(pl.includes('art deco')||pl.includes('deco')))
+  );
+  if(matched){setTimeout(()=>{applyTheme(matched);S.thinking=false;},600);return;}
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:`You are an expert AR interior designer. Give specific, enthusiastic design advice in 3-4 sentences. Mention colors, materials, and furniture from: Sofa, Coffee Table, Arm Chair, Floor Lamp, Bookshelf, Plant, TV Stand, Area Rug, King Bed, Dresser. Be specific and actionable.`,messages:[{role:'user',content:p}]})});
+    const data=await res.json();
+    const txt=data.content?.[0]?.text||fallback();
+    S.thinking=false;
+    typeAI(txt,rid);
+    typeAI(txt,rid==='ai-response'?'m-ai-response':'ai-response');
+  }catch(e){S.thinking=false;typeAI(fallback(),rid);}
+}
+
+function fallback(){
+  const f=["Try the Japandi theme for wabi-sabi harmony! Place a Coffee Table center-stage, add a Floor Lamp in the corner, and layer an Area Rug for warmth. Soft earth tones on the walls tie it all together.","Industrial loft incoming! Use dark wall paint, place a Bookshelf against the back wall, add a Floor Lamp for that Edison bulb glow. Pair with tungsten lighting for maximum atmosphere.","For a perfect cozy corner: Arm Chair near the window, Bookshelf within reach, Floor Lamp overhead. Warm lighting + cream walls = instant hygge."];
+  return f[Math.floor(Math.random()*f.length)];
+}
+
+function typeAI(text,elId){
+  const el=document.getElementById(elId);if(!el)return;
+  el.textContent='';el.classList.add('typing');
+  let i=0;const iv=setInterval(()=>{el.textContent+=text[i++];if(i>=text.length){clearInterval(iv);el.classList.remove('typing');}},14);
+}
+
+// ── TOOLS ────────────────────────────────────────────────────────────────────
+function setTool(t){
+  S.tool=t;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tool-'+t)?.classList.add('active');
+  if(t!=='place'){S.selFurniture=null;if(cursorMesh){scene.remove(cursorMesh);cursorMesh=null;}}
+}
+
+// ── PANELS ───────────────────────────────────────────────────────────────────
+function togglePanels(){
+  S.panelsVisible=!S.panelsVisible;
+  document.getElementById('left-panel').classList.toggle('hidden',!S.panelsVisible);
+  document.getElementById('right-panel').classList.toggle('hidden',!S.panelsVisible);
+}
+
+// ── MOBILE DRAWER ─────────────────────────────────────────────────────────────
+function toggleDrawer(){
+  S.drawerOpen=!S.drawerOpen;
+  document.getElementById('mobile-panel').classList.toggle('open',S.drawerOpen);
+}
+function closeDrawer(){
+  S.drawerOpen=false;
+  document.getElementById('mobile-panel').classList.remove('open');
+}
+function switchTab(name){
+  document.querySelectorAll('.dtab').forEach((t,i)=>{t.classList.toggle('active',['themes','furniture','paint','lighting','ai'][i]===name);});
+  document.querySelectorAll('.dtabcont').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+name)?.classList.add('active');
+}
+document.addEventListener('click',e=>{
+  const panel=document.getElementById('mobile-panel');
+  if(S.drawerOpen && !panel.contains(e.target) && !e.target.closest('.tool-btn[onclick*="toggleDrawer"]')){
+    closeDrawer();
+  }
+});
+
+// ── RESET ────────────────────────────────────────────────────────────────────
+function resetScene(){
+  S.items.forEach(item=>{
+    const m=objs['i'+item.id];if(m)scene.remove(m);delete objs['i'+item.id];
+  });
+  S.items=[];S.theme=null;S.paint=null;S.lighting='natural';
+  S.floorDetected=false;S.camActive=false;
+  initAlpha=null;orientEnabled=false;
+  // Reset camera
+  cam3.position.set(0,1.55,0);cam3.lookAt(0,1.55,-3);
+  cam3.quaternion.set(0,0,0,1);
+  document.getElementById('floor-ring').classList.remove('show');
+  document.getElementById('scan-screen').classList.remove('hidden');
+  document.getElementById('scan-bar').style.width='0%';
+  document.getElementById('scan-status').textContent='AWAITING CAMERA';
+  document.getElementById('scan-btn').textContent='🎥 START AR SESSION';
+  document.getElementById('scan-btn').disabled=false;
+  // Stop camera stream
+  const camEl=document.getElementById('cam-bg');
+  if(camEl.srcObject){camEl.srcObject.getTracks().forEach(t=>t.stop());camEl.srcObject=null;}
+  camEl.style.background='#000';
+  document.getElementById('paint-overlay').style.opacity='0';
+  document.getElementById('light-overlay').style.background='transparent';
+  camEl.style.filter='';
+  document.querySelectorAll('.t-card,.m-tcard').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.l-btn,.m-lbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('dl-natural')?.classList.add('active');
+  document.getElementById('ml-natural')?.classList.add('active');
+  document.getElementById('ai-response').textContent='Apply a theme or describe your vision...';
+  document.getElementById('m-ai-response').textContent='Describe your design vision...';
+  updStats();updPlacedList();updHUD();
+  showToast('↩️ Scene reset');
+}
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+function updStats(){
+  document.getElementById('stat-items').textContent=S.items.length;
+  document.getElementById('h-items').textContent='ITEMS: '+S.items.length;
+}
+function updHUD(){
+  const t=THEMES.find(th=>th.id===S.theme);
+  document.getElementById('h-theme').textContent='THEME: '+(t?t.name.toUpperCase():'DEFAULT');
+  document.getElementById('h-light').textContent='LIGHT: '+S.lighting.toUpperCase();
+  if(t) document.getElementById('stat-theme').textContent=t.name.slice(0,5).toUpperCase();
+}
+function updPlacedList(){
+  const list=document.getElementById('placed-list');
+  if(S.items.length===0){list.innerHTML='<div style="color:var(--text2);font-size:10px;font-family:\'Syne Mono\'">No items placed yet</div>';return;}
+  list.innerHTML='';
+  S.items.forEach(item=>{
+    const row=document.createElement('div');row.className='p-row';
+    row.innerHTML=`<span style="font-size:14px">${item.def.emoji}</span><span style="font-family:'Syne Mono';font-size:10px;flex:1">${item.def.name}</span><span class="p-del" onclick="removeItem(${item.id})">✕</span>`;
+    list.appendChild(row);
+  });
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function toggleGrid(){S.grid=!S.grid;if(objs.grid)objs.grid.visible=S.grid;showToast(S.grid?'⊞ Grid on':'⊞ Grid off');}
+function toggleFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.();}
+function saveLayout(){
+  try{localStorage.setItem('iai-v4',JSON.stringify({theme:S.theme,lighting:S.lighting,paint:S.paint,items:S.items.map(i=>({id:i.def.id,pos:i.pos}))}));showToast('💾 Layout saved!');}
+  catch(e){showToast('⚠️ Save failed');}
+}
+function shareLayout(){
+  if(navigator.share)navigator.share({title:'My AR Room',text:'Check out my design!',url:window.location.href});
+  else{navigator.clipboard?.writeText(window.location.href);showToast('🔗 Link copied!');}
+}
+function exportRender(){
+  renderer.render(scene,cam3);
+  const link=document.createElement('a');
+  link.download='interior-ai.png';link.href=document.getElementById('three-canvas').toDataURL();link.click();
+  showToast('📷 Screenshot saved!');
+}
+
+let noFloorTimer;
+function showNoFloor(){
+  const el=document.getElementById('no-floor');
+  el.classList.add('show');clearTimeout(noFloorTimer);
+  noFloorTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+let flashTimer;
+function flashItem(msg){
+  const el=document.getElementById('item-flash');
+  el.textContent='✅ '+msg;el.classList.add('show');
+  clearTimeout(flashTimer);flashTimer=setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+// ── RESPONSIVE: show Design button on mobile ──────────────────────────────────
+function checkMobile(){
+  const isMob=window.innerWidth<=860;
+  const designBtn=document.getElementById('tool-design');
+  if(designBtn) designBtn.style.display=isMob?'flex':'none';
+  // Update design btn onclick
+  if(designBtn) designBtn.onclick=toggleDrawer;
+}
+window.addEventListener('resize',checkMobile);
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function init(){
+  buildThemes();buildFurnitureList();buildColors();buildQPs();buildLighting();
+  initThree();updPlacedList();updStats();checkMobile();
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
 </body>
-
 </html>
